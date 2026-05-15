@@ -1,4 +1,4 @@
-import { runChecks } from "../services/checker.services";
+import { runChecks } from "../services/checker.service";
 import { logger } from "../logger/logger";
 
 export function startScheduler() {
