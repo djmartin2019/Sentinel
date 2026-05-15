@@ -13,15 +13,17 @@
   "devDependencies": {
     "@grpc/grpc-js": "^1.14.3",
     "@grpc/proto-loader": "^0.8.1",
-    "@prisma/client": "^7.8.0",
     "@types/node": "^25.7.0",
     "eslint": "^10.3.0",
     "prettier": "^3.8.3",
-    "prisma": "^7.8.0",
+    "prisma": "6.19.3",
     "protobufjs": "^8.2.0",
     "ts-proto": "^2.11.8",
     "tsx": "^4.21.0",
     "turbo": "^2.9.12",
     "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3"
   }
 }
