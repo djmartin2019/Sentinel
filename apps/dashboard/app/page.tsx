@@ -44,7 +44,7 @@ export default async function DashboardPage() {
         title="Overview"
         subtitle="Infrastructure health · live from database"
       />
-      <div className="p-5 space-y-5 max-w-[1600px]">
+      <div className="space-y-5 p-4 sm:p-5 max-w-[1600px]">
         <SummaryCards stats={stats} />
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">

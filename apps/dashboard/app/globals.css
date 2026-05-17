@@ -32,6 +32,9 @@
   --color-text-dim: #1e293b;
 
   --font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+
+  /* Shared top bar height — sidebar brand row + page header */
+  --spacing-layout-header: 3.75rem;
 }
 
 html {

@@ -25,16 +25,18 @@ ENV DATABASE_URL="postgresql://sentinel:sentinel@postgres:5432/sentinel?schema=p
 RUN pnpm exec prisma generate --schema=prisma/schema.prisma
 WORKDIR /app/apps/checker
 RUN pnpm build
-WORKDIR /app
-RUN pnpm deploy --filter=checker --prod --legacy /prod/checker
 
 FROM node:22-alpine AS runner
-RUN apk add --no-cache procps
+RUN apk add --no-cache procps openssl
 WORKDIR /app
-ENV NODE_ENV=production
 
-COPY --from=builder /prod/checker ./
+# Preserve pnpm workspace layout so module resolution + Prisma engines work.
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/checker ./apps/checker
 COPY --from=builder /app/prisma ./prisma
+
+ENV NODE_ENV=production
+WORKDIR /app/apps/checker
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD pgrep -f "node dist/index.js" > /dev/null || exit 1

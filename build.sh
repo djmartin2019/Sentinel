@@ -45,6 +45,18 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build migrate
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm migrate
 ok "Migrations applied."
 
+SEED_FILE="prisma/seed/monitored-targets.sql"
+[[ -f "$SEED_FILE" ]] || die "Missing $SEED_FILE"
+POSTGRES_USER="$(grep -E '^POSTGRES_USER=' "$ENV_FILE" | tail -1 | cut -d= -f2- | tr -d ' "')" || true
+POSTGRES_DB="$(grep -E '^POSTGRES_DB=' "$ENV_FILE" | tail -1 | cut -d= -f2- | tr -d ' "')" || true
+POSTGRES_USER="${POSTGRES_USER:-sentinel}"
+POSTGRES_DB="${POSTGRES_DB:-sentinel}"
+
+info "Seeding monitored targets (skips existing URLs)..."
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T postgres \
+  psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$SEED_FILE"
+ok "Seed complete."
+
 info "Starting application containers..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d dashboard api checker
 ok "Stack is up."

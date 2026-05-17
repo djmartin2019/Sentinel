@@ -1,12 +1,16 @@
 import { runChecks } from "../services/checker.service";
 import { logger } from "../logger/logger";
 
+function runChecksSafe() {
+    runChecks().catch((err) => {
+        logger.error({ err }, "Check cycle failed");
+    });
+}
+
 export function startScheduler() {
     logger.info("Starting scheduler");
 
-    runChecks();
+    runChecksSafe();
 
-    setInterval(async () => {
-        await runChecks();
-    }, 30_000);
+    setInterval(runChecksSafe, 30_000);
 }
