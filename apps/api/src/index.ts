@@ -10,6 +10,8 @@ app.get("/health", (_, res) => {
     res.json({ status: "ok" });
 });
 
-app.listen(4000, () => {
-    console.log("API running on port 4000");
+const port = Number(process.env.PORT) || 4010;
+
+app.listen(port, "0.0.0.0", () => {
+    console.log(`API running on port ${port}`);
 });

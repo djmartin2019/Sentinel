@@ -1,0 +1,134 @@
+# Production stack for VPS deployment behind Apache.
+# Deploy path: /var/www/sentinel
+# Usage: ./build.sh  (or docker compose -f docker-compose.prod.yml up -d)
+
+name: sentinel-prod
+
+services:
+  postgres:
+    image: postgres:16
+    # No fixed container_name — avoids clashing with dev docker-compose.yml (sentinel-postgres).
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sentinel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-sentinel}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sentinel-internal
+    # No host ports — DB reachable only on sentinel-internal (checker, dashboard, api).
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-sentinel} -d ${POSTGRES_DB:-sentinel}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.migrate
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    networks:
+      - sentinel-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3010
+      HOSTNAME: 0.0.0.0
+      DATABASE_URL: ${DATABASE_URL}
+    ports:
+      - "3010:3010"
+    networks:
+      - sentinel-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3010/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4010
+    ports:
+      - "4010:4010"
+    networks:
+      - sentinel-internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:4010/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  checker:
+    build:
+      context: .
+      dockerfile: apps/checker/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+    networks:
+      - sentinel-internal
+    # Checker has no HTTP API — must not be exposed to the host or Apache.
+    # It only talks to postgres on the internal network.
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'node dist/index.js' > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Future gRPC telemetry collector (internal-only; not proxied by Apache).
+  # collector:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/collector/Dockerfile
+  #   restart: unless-stopped
+  #   environment:
+  #     NODE_ENV: production
+  #     GRPC_PORT: 50051
+  #   expose:
+  #     - "50051"
+  #   networks:
+  #     - sentinel-internal
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+networks:
+  # Shared bridge: service DNS names (postgres, api, dashboard) replace localhost in containers.
+  # Apache on the host proxies to published ports 3010/4010 only — not to checker/postgres.
+  sentinel-internal:
+    driver: bridge
+
+volumes:
+  postgres_data:

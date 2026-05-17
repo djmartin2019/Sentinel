@@ -1,0 +1,35 @@
+# Dependencies and build artifacts (rebuilt inside images)
+node_modules
+**/node_modules
+.pnpm-store
+**/.next
+**/dist
+**/out
+.turbo
+
+# Local env and secrets — inject at runtime via compose / VPS .env
+.env
+.env.*
+!.env.production.example
+
+# Git and editor
+.git
+.gitignore
+.cursor
+.vscode
+*.md
+!apps/dashboard/README.md
+
+# Development-only
+dev.sh
+docker-compose.yml
+agent-transcripts
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests and coverage (not needed in production images)
+**/*.test.ts
+**/*.spec.ts
+coverage
