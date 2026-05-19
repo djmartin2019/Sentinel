@@ -7,13 +7,14 @@ Sentinel uses **PostgreSQL** as its database and **Prisma** as the ORM. The Pris
 ```
 sentinel/
 ├── prisma/
-│   ├── schema.prisma               # Models, relations, enums
+│   ├── schema.prisma               # Models, relations, enums, indexes
+│   ├── seed/
+│   │   └── monitored-targets.sql   # Idempotent prod seed (via build.sh)
 │   └── migrations/
-│       ├── migration_lock.toml     # Locks the provider to PostgreSQL
-│       └── 20260515000044_init/
-│           └── migration.sql       # Initial table definitions
-├── generated/                      # Git-ignored — created by pnpm db:generate
-└── .env                            # DATABASE_URL lives here (git-ignored)
+│       ├── migration_lock.toml
+│       ├── 20260515000044_init/
+│       └── 20260517120000_healthcheck_indexes/
+└── .env                            # DATABASE_URL (git-ignored)
 ```
 
 ## Schema — `prisma/schema.prisma`
@@ -71,6 +72,13 @@ One row is written every time a target is checked.
 | `errorMessage` | `TEXT` (nullable) | Populated on failures |
 | `checkedAt` | `TIMESTAMP` | Set automatically on insert |
 
+**Indexes** (migration `20260517120000_healthcheck_indexes`):
+
+| Index | Columns | Used for |
+|-------|---------|----------|
+| `HealthCheck_checkedAt_idx` | `checkedAt` | Time-window charts, future retention |
+| `HealthCheck_targetId_checkedAt_idx` | `targetId`, `checkedAt DESC` | Latest check per target, incident lookups |
+
 ### `CheckStatus` enum
 
 ```prisma
@@ -99,6 +107,7 @@ Prisma Migrate tracks schema changes as versioned SQL files under `prisma/migrat
 | Migration | What it does |
 |---|---|
 | `20260515000044_init` | Creates the `CheckStatus` enum, `MonitoredTarget` table, `HealthCheck` table, and the foreign key constraint |
+| `20260517120000_healthcheck_indexes` | Adds indexes on `checkedAt` and `(targetId, checkedAt DESC)` |
 
 ### Running migrations
 
@@ -125,16 +134,36 @@ This runs `prisma generate`, which writes the client into `node_modules/.prisma/
 
 ### Using the client
 
-The singleton Prisma client is created once in `apps/checker/src/db/prisma.ts` and imported wherever queries are needed:
+**Checker** — `apps/checker/src/db/prisma.ts`:
 
 ```ts
 import { prisma } from "../db/prisma";
 
-// Fetch all monitored targets
 const targets = await prisma.monitoredTarget.findMany();
-
-// Write a health check result
 await prisma.healthCheck.create({ data: { ... } });
+```
+
+**Dashboard** — `apps/dashboard/lib/db.ts` (server-only):
+
+```ts
+import { prisma } from "@/lib/db";
+
+const targets = await prisma.monitoredTarget.findMany();
+```
+
+The dashboard also uses raw SQL for aggregates in `apps/dashboard/lib/queries/sql.ts` (see [dashboard.md](./dashboard.md#data-layer)).
+
+---
+
+## Seeding monitored targets
+
+[`prisma/seed/monitored-targets.sql`](../prisma/seed/monitored-targets.sql) inserts initial URLs. It is **idempotent** (`WHERE NOT EXISTS` on `url`) and runs automatically in `./build.sh` after migrations.
+
+Manual run on production:
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T postgres \
+  psql -U sentinel -d sentinel < prisma/seed/monitored-targets.sql
 ```
 
 ---
@@ -157,11 +186,21 @@ GRANT ALL ON SCHEMA public TO sentinel;
 
 ### Environment variable
 
-Add a `.env` file at the **monorepo root**:
+Add a `.env` file at the **monorepo root**.
+
+**Local dev** (apps on host, Postgres in Docker on port 5432):
 
 ```
 DATABASE_URL="postgresql://sentinel:sentinel@127.0.0.1:5432/sentinel?schema=public"
 ```
+
+**Docker production** (apps and Postgres on `sentinel-internal` network):
+
+```
+DATABASE_URL="postgresql://sentinel:<password>@postgres:5432/sentinel?schema=public"
+```
+
+See `.env.production.example` and [deployment.md](./deployment.md).
 
 ### First-time initialization
 

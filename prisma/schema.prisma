@@ -25,6 +25,9 @@ model HealthCheck {
     errorMessage    String?
 
     checkedAt       DateTime        @default(now())
+
+    @@index([checkedAt])
+    @@index([targetId, checkedAt(sort: Desc)])
 }
 
 model MonitoredTarget {

@@ -1,400 +1,144 @@
-# Sentinel — Distributed Observability Platform
+# Sentinel
 
-Sentinel is a lightweight distributed observability and uptime monitoring platform designed for self-hosted infrastructure, cloud deployments, and modern web applications.
+Lightweight self-hosted uptime monitoring: HTTP health checks, a Postgres-backed history, and a Next.js operations dashboard.
 
-The platform provides centralized visibility into:
+**What works today:** checker worker, PostgreSQL + Prisma, live dashboard (overview, targets, incidents, per-target detail), production Docker deployment behind Apache.
 
-- Website uptime
-- API health
-- VPS/server metrics
-- Container health
-- Application telemetry
-- Incident tracking
-
-Sentinel is designed to monitor infrastructure distributed across multiple providers including:
-
-- Vercel
-- Cloudflare
-- VPS providers
-- Local Docker environments
-- Raspberry Pi devices
-- Custom backend services
+**Planned:** gRPC collector/agents, full REST API surface, persistent incidents table, alerts.
 
 ---
 
-# Overview
+## Quick start
 
-Sentinel combines:
+### Local development
 
-- External HTTP health checks
-- Internal telemetry collection
-- gRPC-based agent communication
-- REST APIs
-- Real-time dashboards
-
-into a unified observability platform focused on infrastructure visibility and operational awareness.
-
-The project is built to explore and demonstrate real-world platform engineering concepts including distributed systems, telemetry pipelines, backend architecture, infrastructure monitoring, and service orchestration.
-
----
-
-# Core Features
-
-## Uptime & API Monitoring
-
-Monitor websites and APIs for:
-
-- Availability
-- Latency
-- SSL validity
-- DNS issues
-- Unexpected responses
-- Misconfigurations
-
-Example failures Sentinel can detect:
-
-- Apache reverse proxy failures
-- Docker container crashes
-- Cloudflare routing issues
-- Vercel deployment failures
-
----
-
-## Infrastructure Telemetry
-
-Sentinel agents collect and report:
-
-- CPU usage
-- Memory usage
-- Disk usage
-- Service uptime
-- Container health
-- Request metrics
-- Error counts
-
-Telemetry is streamed to a central collector using gRPC.
-
----
-
-## Incident Tracking
-
-Sentinel stores historical infrastructure events including:
-
-- Outages
-- Latency spikes
-- Downtime history
-- Service degradation
-- Active incidents
-- Resolved incidents
-
----
-
-## Real-Time Dashboard
-
-The Next.js dashboard provides visibility into:
-
-- Live service status
-- Active incidents
-- Historical uptime
-- Infrastructure health
-- Telemetry metrics
-- Response time trends
-
----
-
-# Architecture
-
-```text
-                   +----------------------+
-                   |  Next.js Dashboard   |
-                   +----------+-----------+
-                              |
-                              | REST / SSE
-                              v
-                   +----------------------+
-                   |  Express API Server  |
-                   +----------+-----------+
-                              |
-          +-------------------+-------------------+
-          |                                       |
-          v                                       v
-+----------------------+           +----------------------+
-| HTTP Health Checker  |           | gRPC Collector       |
-| External Monitoring  |           | Internal Telemetry   |
-+----------+-----------+           +----------+-----------+
-           |                                  ^
-           | HTTP                             |
-           v                                  | gRPC
-   Websites / APIs                   Sentinel Agents
-                                     VPS Services
-                                     Docker Hosts
+```bash
+pnpm install
+cp .env.production.example .env   # then set DATABASE_URL to 127.0.0.1 for dev
+./dev.sh
 ```
 
----
+- Dashboard: http://localhost:3010
+- Postgres: `127.0.0.1:5432` (Docker via `docker-compose.yml`)
 
-# Technology Stack
+### Production (VPS)
 
-## Backend API
+```bash
+cd /var/www/sentinel
+cp .env.production.example .env   # set POSTGRES_PASSWORD + DATABASE_URL
+chmod 600 .env
+./build.sh
+```
 
-- Node.js
-- TypeScript
-- Express
-
-Responsibilities:
-
-- REST endpoints
-- Dashboard data
-- Incident management
-- Target management
-- Real-time updates
+Configure Apache to proxy to port **3010** (dashboard). See [docs/deployment.md](docs/deployment.md).
 
 ---
 
-## Internal Communication
+## How it works
 
-- gRPC
-- Protocol Buffers
+```text
+Checker (every 30s)  --HTTP-->  your URLs
+        |
+        v
+   PostgreSQL  (MonitoredTarget, HealthCheck)
+        ^
+        |
+   Dashboard  (Next.js + Prisma, reads DB directly)
+```
 
-Used for:
+1. **Targets** are rows in `MonitoredTarget` (name, url, interval).
+2. The **checker** pings each URL and appends a `HealthCheck` row (`UP`/`DOWN`, latency, status code).
+3. The **dashboard** aggregates those rows for charts, tables, and derived incidents (e.g. 3× `DOWN` in a row = active incident).
 
-- Telemetry ingestion
-- Heartbeats
-- Internal service communication
-- Metric streaming
+The Express **API** (`apps/api`) is in the stack for future REST use; the dashboard does not depend on it yet.
 
----
-
-## Database
-
-- PostgreSQL
-- Prisma ORM
-
-Stores:
-
-- Monitored targets
-- Health checks
-- Incidents
-- Telemetry metrics
-- Service state
+Full diagrams: [docs/architecture.md](docs/architecture.md)
 
 ---
 
-## Frontend
-
-- Next.js
-- TypeScript
-- Tailwind CSS
-
-Provides:
-
-- Infrastructure dashboards
-- Metrics visualization
-- Incident history
-- Service monitoring
-
----
-
-## Infrastructure
-
-- Docker
-- Docker Compose
-
-Containerized services include:
-
-- API
-- Checker
-- Collector
-- Dashboard
-- Agents
-- PostgreSQL
-
----
-
-# Core Services
-
-## API Service
-
-The central REST API responsible for:
-
-- Target CRUD operations
-- Dashboard aggregation
-- Incident APIs
-- Metrics APIs
-- Real-time streaming
-
----
-
-## Checker Service
-
-Background worker responsible for:
-
-- Scheduled health checks
-- HTTP monitoring
-- SSL validation
-- Incident generation
-- Uptime tracking
-
----
-
-## Collector Service
-
-gRPC ingestion service responsible for:
-
-- Receiving telemetry
-- Receiving heartbeats
-- Streaming metrics
-- Tracking service state
-
----
-
-## Sentinel Agent
-
-Lightweight distributed agent responsible for:
-
-- Collecting system metrics
-- Monitoring local services
-- Reporting telemetry
-- Sending heartbeats
-
-Deployment targets include:
-
-- VPS infrastructure
-- Raspberry Pi devices
-- Docker hosts
-- Cloud VMs
-- Local development environments
-
----
-
-# Database Design
-
-## monitored_targets
-
-Stores monitored websites and APIs.
-
-## health_checks
-
-Stores individual health check results.
-
-## incidents
-
-Tracks outages and service degradation.
-
-## telemetry_metrics
-
-Stores historical telemetry data.
-
-## service_instances
-
-Tracks connected agents and services.
-
----
-
-# Planned Features
-
-## MVP
-
-- Add/remove monitored targets
-- Scheduled uptime checks
-- Historical uptime storage
-- Incident tracking
-- Basic dashboard
-- VPS telemetry reporting
-- Discord/email alerts
-
----
-
-## Future Features
-
-- Distributed agents
-- Docker monitoring
-- Apache/Nginx monitoring
-- Cloudflare analytics integration
-- Vercel deployment monitoring
-- SFTP health checks
-- SSO validation flows
-- Log aggregation
-- Tracing
-- Alert escalation rules
-- Multi-region monitoring
-- Role-based access control
-
----
-
-# Project Goals
-
-Sentinel is designed to explore and demonstrate:
-
-- Distributed systems architecture
-- Observability engineering
-- Telemetry pipelines
-- Backend API design
-- gRPC communication
-- Infrastructure monitoring
-- Scheduling systems
-- Docker orchestration
-- Real-time data streaming
-- Platform engineering concepts
-
-The project intentionally focuses on infrastructure tooling and systems architecture rather than traditional CRUD application development.
-
----
-
-# Repository Structure
+## Repository structure
 
 ```text
 sentinel/
 ├── apps/
-│   ├── api/
-│   ├── checker/
-│   ├── collector/
-│   ├── dashboard/
-│   └── agent/
-│
-├── packages/
-│   ├── shared/
-│   ├── db/
-│   └── proto/
-│
+│   ├── checker/          # Background HTTP health-check worker
+│   ├── dashboard/        # Next.js UI (production: port 3010)
+│   ├── api/              # Express API (scaffold, port 4010)
+│   ├── collector/        # Planned gRPC telemetry
+│   └── agent/            # Planned host agent
 ├── prisma/
-├── docker-compose.yml
-├── pnpm-workspace.yaml
-└── turbo.json
+│   ├── schema.prisma
+│   ├── migrations/
+│   └── seed/monitored-targets.sql
+├── docs/                 # Detailed documentation
+├── deploy/apache/        # Example reverse proxy config
+├── docker-compose.yml    # Dev: Postgres only
+├── docker-compose.prod.yml
+├── build.sh              # Prod: build, migrate, seed, up
+└── dev.sh                # Dev: Postgres + migrate + checker + dashboard
 ```
 
 ---
 
-# Status
+## Documentation
 
-Sentinel is currently under active development.
-
-Initial development is focused on:
-
-1. External uptime monitoring
-2. Incident lifecycle management
-3. Telemetry ingestion
-4. Distributed agent communication
-5. Infrastructure visualization
+| Doc                                          | Contents                                            |
+| -------------------------------------------- | --------------------------------------------------- |
+| [docs/architecture.md](docs/architecture.md) | Data flow, dev vs prod topology, what's implemented |
+| [docs/deployment.md](docs/deployment.md)     | VPS deploy, `.env`, Apache, troubleshooting         |
+| [docs/dashboard.md](docs/dashboard.md)       | Pages, queries, UI, mobile layout                   |
+| [docs/checker.md](docs/checker.md)           | Scheduler, HTTP checks, Docker worker               |
+| [docs/database.md](docs/database.md)         | Prisma schema, migrations, indexes, seeding         |
 
 ---
 
-# Inspiration
+## Technology stack
 
-Sentinel draws inspiration from modern observability and infrastructure platforms including:
-
-- Prometheus
-- Grafana
-- Datadog
-- OpenTelemetry
-- Uptime Kuma
-- New Relic
-
-The goal is not to replicate these platforms entirely, but to better understand the architecture and engineering patterns behind modern infrastructure tooling.
+| Layer     | Tech                                                     |
+| --------- | -------------------------------------------------------- |
+| Database  | PostgreSQL 16, Prisma                                    |
+| Worker    | Node.js, TypeScript, axios, pino                         |
+| Dashboard | Next.js 16, React 19, Tailwind v4, Recharts              |
+| API       | Express 5 (health endpoint today)                        |
+| Deploy    | Docker Compose, multi-stage images, Apache reverse proxy |
+| Monorepo  | pnpm workspaces                                          |
 
 ---
 
-# Author
+## Production services
 
-Built by David Martin.
+| Service   | Exposed     | Role                        |
+| --------- | ----------- | --------------------------- |
+| dashboard | Host `3010` | `next build` + `next start` |
+| api       | Host `4010` | REST (minimal today)        |
+| checker   | Internal    | Writes health checks        |
+| postgres  | Internal    | Persistent volume           |
 
-Focused on backend engineering, infrastructure tooling, distributed systems, and platform architecture.
+Only dashboard and API should be proxied from Apache. Checker and Postgres stay on the Docker internal network.
+
+---
+
+## Common commands
+
+```bash
+# Prisma
+pnpm db:generate
+pnpm prisma migrate dev          # local schema changes
+pnpm exec prisma migrate deploy  # apply migrations (also via build.sh)
+
+# Production
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs checker --tail 50
+```
+
+---
+
+## Status
+
+Active development. Current focus: reliable uptime monitoring and a fast dashboard at scale as `HealthCheck` data grows (indexes + SQL aggregates in place).
+
+---
+
+## Author
+
+David Martin — backend and platform engineering.

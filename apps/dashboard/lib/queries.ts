@@ -1,4 +1,9 @@
 import { prisma } from "./db";
+import {
+  queryLatestChecksByTarget,
+  queryLatencyByMinute,
+  queryUptimeByDay,
+} from "./queries/sql";
 
 type PrismaCheckStatus = "UP" | "DOWN";
 import type {
@@ -24,6 +29,22 @@ export interface SummaryStats {
   avgUptimePercent: number;
 }
 
+export interface OverviewPageData {
+  targets: MonitoredTarget[];
+  stats: SummaryStats;
+  latencyData: LatencyDataPoint[];
+  uptimeData: UptimeDataPoint[];
+  activeIncidents: Incident[];
+  resolvedIncidents: Incident[];
+  activityEvents: ActivityEvent[];
+}
+
+type LatestCheck = {
+  status: PrismaCheckStatus;
+  latencyMs: number | null;
+  checkedAt: Date;
+};
+
 function deriveDisplayStatus(
   prismaStatus: PrismaCheckStatus,
   latencyMs: number | null | undefined
@@ -33,10 +54,9 @@ function deriveDisplayStatus(
   return "UP";
 }
 
-function computeUptimePercent(checks: { status: PrismaCheckStatus }[]): number {
-  if (checks.length === 0) return 100;
-  const up = checks.filter((c) => c.status === "UP").length;
-  return parseFloat(((up / checks.length) * 100).toFixed(2));
+function computeUptimePercentFromCounts(up: number, total: number): number {
+  if (total === 0) return 100;
+  return parseFloat(((up / total) * 100).toFixed(2));
 }
 
 function formatTimeLabel(date: Date): string {
@@ -60,45 +80,72 @@ function percentile(sorted: number[], p: number): number {
   return sorted[idx]!;
 }
 
-async function loadLatestChecksByTarget(): Promise<
-  Map<string, { status: PrismaCheckStatus; latencyMs: number | null; checkedAt: Date }>
-> {
-  const checks = await prisma.healthCheck.findMany({
-    orderBy: { checkedAt: "desc" },
-    take: 5000,
-    select: { targetId: true, status: true, latencyMs: true, checkedAt: true },
-  });
-
-  const latest = new Map<
-    string,
-    { status: PrismaCheckStatus; latencyMs: number | null; checkedAt: Date }
-  >();
-  for (const check of checks) {
-    if (!latest.has(check.targetId)) {
-      latest.set(check.targetId, {
-        status: check.status,
-        latencyMs: check.latencyMs,
-        checkedAt: check.checkedAt,
-      });
-    }
+async function loadLatestChecksByTarget(): Promise<Map<string, LatestCheck>> {
+  const rows = await queryLatestChecksByTarget();
+  const latest = new Map<string, LatestCheck>();
+  for (const row of rows) {
+    latest.set(row.targetId, {
+      status: row.status,
+      latencyMs: row.latencyMs,
+      checkedAt: row.checkedAt,
+    });
   }
   return latest;
 }
 
-async function loadChecksInWindow(since: Date, targetId?: string) {
-  return prisma.healthCheck.findMany({
-    where: {
-      checkedAt: { gte: since },
-      ...(targetId ? { targetId } : {}),
-    },
-    orderBy: { checkedAt: "asc" },
-    select: { targetId: true, status: true, latencyMs: true, checkedAt: true },
+function uptimeMapFromGroupBy(
+  groups: { targetId: string; status: PrismaCheckStatus; _count: { _all: number } }[]
+): Map<string, number> {
+  const totals = new Map<string, { up: number; total: number }>();
+  for (const row of groups) {
+    const entry = totals.get(row.targetId) ?? { up: 0, total: 0 };
+    const count = row._count._all;
+    entry.total += count;
+    if (row.status === "UP") entry.up += count;
+    totals.set(row.targetId, entry);
+  }
+
+  const uptime = new Map<string, number>();
+  for (const [targetId, { up, total }] of totals) {
+    uptime.set(targetId, computeUptimePercentFromCounts(up, total));
+  }
+  return uptime;
+}
+
+async function loadUptimePercentByTarget(
+  since: Date
+): Promise<Map<string, number>> {
+  const groups = await prisma.healthCheck.groupBy({
+    by: ["targetId", "status"],
+    where: { checkedAt: { gte: since } },
+    _count: { _all: true },
   });
+  return uptimeMapFromGroupBy(groups);
+}
+
+async function loadUptimePercentForTarget(
+  since: Date,
+  targetId: string
+): Promise<number> {
+  const groups = await prisma.healthCheck.groupBy({
+    by: ["status"],
+    where: { checkedAt: { gte: since }, targetId },
+    _count: { _all: true },
+  });
+
+  let up = 0;
+  let total = 0;
+  for (const row of groups) {
+    const count = row._count._all;
+    total += count;
+    if (row.status === "UP") up += count;
+  }
+  return computeUptimePercentFromCounts(up, total);
 }
 
 function mapTargetRow(
   target: { id: string; name: string; url: string; interval: number; createdAt: Date },
-  latest: { status: PrismaCheckStatus; latencyMs: number | null; checkedAt: Date } | undefined,
+  latest: LatestCheck | undefined,
   uptime: number
 ): MonitoredTarget {
   const latencyMs = latest?.latencyMs ?? 0;
@@ -121,28 +168,59 @@ function mapTargetRow(
   };
 }
 
+function buildTargetsWithStatus(
+  targets: { id: string; name: string; url: string; interval: number; createdAt: Date }[],
+  latestByTarget: Map<string, LatestCheck>,
+  uptimeByTarget: Map<string, number>
+): MonitoredTarget[] {
+  return targets.map((target) =>
+    mapTargetRow(
+      target,
+      latestByTarget.get(target.id),
+      uptimeByTarget.get(target.id) ?? 100
+    )
+  );
+}
+
+function deriveSummaryStats(
+  targets: MonitoredTarget[],
+  activeIncidentCount: number
+): SummaryStats {
+  const healthyTargets = targets.filter((t) => t.status === "UP").length;
+  const withLatency = targets.filter((t) => t.status !== "DOWN");
+  const avgLatencyMs =
+    withLatency.length > 0
+      ? Math.round(
+          withLatency.reduce((sum, t) => sum + t.latencyMs, 0) / withLatency.length
+        )
+      : 0;
+  const avgUptimePercent =
+    targets.length > 0
+      ? parseFloat(
+          (
+            targets.reduce((sum, t) => sum + t.uptime, 0) / targets.length
+          ).toFixed(2)
+        )
+      : 100;
+
+  return {
+    totalTargets: targets.length,
+    healthyTargets,
+    activeIncidents: activeIncidentCount,
+    avgLatencyMs,
+    avgUptimePercent,
+  };
+}
+
 export async function getTargetsWithStatus(): Promise<MonitoredTarget[]> {
   const since = new Date(Date.now() - THIRTY_DAYS_MS);
-  const [targets, checks30d, latestByTarget] = await Promise.all([
+  const [targets, latestByTarget, uptimeByTarget] = await Promise.all([
     prisma.monitoredTarget.findMany({ orderBy: { name: "asc" } }),
-    loadChecksInWindow(since),
     loadLatestChecksByTarget(),
+    loadUptimePercentByTarget(since),
   ]);
 
-  const uptimeByTarget = new Map<string, PrismaCheckStatus[]>();
-  for (const check of checks30d) {
-    const list = uptimeByTarget.get(check.targetId) ?? [];
-    list.push(check.status);
-    uptimeByTarget.set(check.targetId, list);
-  }
-
-  return targets.map((target) => {
-    const statusChecks = uptimeByTarget.get(target.id) ?? [];
-    const uptime = computeUptimePercent(
-      statusChecks.map((status) => ({ status }))
-    );
-    return mapTargetRow(target, latestByTarget.get(target.id), uptime);
-  });
+  return buildTargetsWithStatus(targets, latestByTarget, uptimeByTarget);
 }
 
 export async function getTargetById(
@@ -161,11 +239,7 @@ export async function getTargetById(
 
   if (!target) return null;
 
-  const checks30d = await prisma.healthCheck.findMany({
-    where: { targetId: id, checkedAt: { gte: since } },
-    select: { status: true },
-  });
-
+  const uptime = await loadUptimePercentForTarget(since, id);
   const latest = target.checks[0];
   const mapped = mapTargetRow(
     target,
@@ -176,7 +250,7 @@ export async function getTargetById(
           checkedAt: latest.checkedAt,
         }
       : undefined,
-    computeUptimePercent(checks30d)
+    uptime
   );
 
   return {
@@ -215,46 +289,16 @@ export async function getLatencyTimeSeries(
   targetId?: string
 ): Promise<LatencyDataPoint[]> {
   const since = new Date(Date.now() - SIXTY_MINUTES_MS);
-  const checks = await loadChecksInWindow(since, targetId);
-
-  const buckets = new Map<string, number[]>();
-  for (const check of checks) {
-    const key = formatTimeLabel(check.checkedAt);
-    const list = buckets.get(key) ?? [];
-    list.push(check.latencyMs ?? 0);
-    buckets.set(key, list);
-  }
-
-  return Array.from(buckets.entries()).map(([time, values]) => {
-    const sorted = [...values].sort((a, b) => a - b);
-    const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
-    return {
-      time,
-      latencyMs: Math.round(avg),
-      p95Ms: Math.round(percentile(sorted, 0.95)),
-      p99Ms: Math.round(percentile(sorted, 0.99)),
-    };
-  });
+  const rows = await queryLatencyByMinute(since, targetId);
+  return buildLatencySeries(rows);
 }
 
 export async function getUptimeTimeSeries(
   targetId?: string
 ): Promise<UptimeDataPoint[]> {
   const since = new Date(Date.now() - THIRTY_DAYS_MS);
-  const checks = await loadChecksInWindow(since, targetId);
-
-  const buckets = new Map<string, PrismaCheckStatus[]>();
-  for (const check of checks) {
-    const key = formatDateLabel(check.checkedAt);
-    const list = buckets.get(key) ?? [];
-    list.push(check.status);
-    buckets.set(key, list);
-  }
-
-  return Array.from(buckets.entries()).map(([date, statuses]) => ({
-    date,
-    uptime: computeUptimePercent(statuses.map((status) => ({ status }))),
-  }));
+  const rows = await queryUptimeByDay(since, targetId);
+  return buildUptimeSeries(rows);
 }
 
 async function getConsecutiveDownTargets(): Promise<
@@ -264,35 +308,33 @@ async function getConsecutiveDownTargets(): Promise<
     select: { id: true, name: true },
   });
 
-  const results: {
-    targetId: string;
-    targetName: string;
-    startedAt: Date;
-    count: number;
-  }[] = [];
-
-  for (const target of targets) {
-    const recent = await prisma.healthCheck.findMany({
-      where: { targetId: target.id },
-      orderBy: { checkedAt: "desc" },
-      take: CONSECUTIVE_DOWN_FOR_INCIDENT,
-      select: { status: true, checkedAt: true, errorMessage: true },
-    });
-
-    if (
-      recent.length >= CONSECUTIVE_DOWN_FOR_INCIDENT &&
-      recent.every((c) => c.status === "DOWN")
-    ) {
-      results.push({
-        targetId: target.id,
-        targetName: target.name,
-        startedAt: recent[recent.length - 1]!.checkedAt,
-        count: recent.length,
+  const perTarget = await Promise.all(
+    targets.map(async (target) => {
+      const recent = await prisma.healthCheck.findMany({
+        where: { targetId: target.id },
+        orderBy: { checkedAt: "desc" },
+        take: CONSECUTIVE_DOWN_FOR_INCIDENT,
+        select: { status: true, checkedAt: true },
       });
-    }
-  }
 
-  return results;
+      if (
+        recent.length >= CONSECUTIVE_DOWN_FOR_INCIDENT &&
+        recent.every((c) => c.status === "DOWN")
+      ) {
+        return {
+          targetId: target.id,
+          targetName: target.name,
+          startedAt: recent[recent.length - 1]!.checkedAt,
+          count: recent.length,
+        };
+      }
+      return null;
+    })
+  );
+
+  return perTarget.filter(
+    (row): row is NonNullable<typeof row> => row !== null
+  );
 }
 
 function downTargetToIncident(
@@ -326,27 +368,25 @@ export async function getRecentIncidents(): Promise<Incident[]> {
     select: { id: true, name: true },
   });
 
-  const resolved: Incident[] = [];
+  const perTarget = await Promise.all(
+    targets.map(async (target) => {
+      const recent = await prisma.healthCheck.findMany({
+        where: { targetId: target.id },
+        orderBy: { checkedAt: "desc" },
+        take: CONSECUTIVE_DOWN_FOR_INCIDENT + 1,
+        select: { status: true, checkedAt: true },
+      });
 
-  for (const target of targets) {
-    const recent = await prisma.healthCheck.findMany({
-      where: { targetId: target.id },
-      orderBy: { checkedAt: "desc" },
-      take: CONSECUTIVE_DOWN_FOR_INCIDENT + 1,
-      select: { status: true, checkedAt: true },
-    });
+      if (recent.length < CONSECUTIVE_DOWN_FOR_INCIDENT + 1) return null;
 
-    if (recent.length < CONSECUTIVE_DOWN_FOR_INCIDENT + 1) continue;
+      const latest = recent[0]!;
+      const previous = recent.slice(1, CONSECUTIVE_DOWN_FOR_INCIDENT + 1);
 
-    const latest = recent[0]!;
-    const previous = recent.slice(1, CONSECUTIVE_DOWN_FOR_INCIDENT + 1);
-
-    if (
-      latest.status === "UP" &&
-      previous.every((c) => c.status === "DOWN")
-    ) {
-      resolved.push(
-        downTargetToIncident(
+      if (
+        latest.status === "UP" &&
+        previous.every((c) => c.status === "DOWN")
+      ) {
+        return downTargetToIncident(
           {
             targetId: target.id,
             targetName: target.name,
@@ -355,16 +395,19 @@ export async function getRecentIncidents(): Promise<Incident[]> {
           },
           true,
           latest.checkedAt
-        )
-      );
-    }
-  }
-
-  return resolved.sort(
-    (a, b) =>
-      new Date(b.resolvedAt ?? b.startedAt).getTime() -
-      new Date(a.resolvedAt ?? a.startedAt).getTime()
+        );
+      }
+      return null;
+    })
   );
+
+  return perTarget
+    .filter((inc): inc is Incident => inc !== null)
+    .sort(
+      (a, b) =>
+        new Date(b.resolvedAt ?? b.startedAt).getTime() -
+        new Date(a.resolvedAt ?? a.startedAt).getTime()
+    );
 }
 
 export async function getActivityFeed(): Promise<ActivityEvent[]> {
@@ -408,29 +451,86 @@ export async function getSummaryStats(): Promise<SummaryStats> {
     getTargetsWithStatus(),
     getActiveIncidents(),
   ]);
+  return deriveSummaryStats(targets, activeIncidents.length);
+}
 
-  const healthyTargets = targets.filter((t) => t.status === "UP").length;
-  const withLatency = targets.filter((t) => t.status !== "DOWN");
-  const avgLatencyMs =
-    withLatency.length > 0
-      ? Math.round(
-          withLatency.reduce((sum, t) => sum + t.latencyMs, 0) / withLatency.length
-        )
-      : 0;
-  const avgUptimePercent =
-    targets.length > 0
-      ? parseFloat(
-          (
-            targets.reduce((sum, t) => sum + t.uptime, 0) / targets.length
-          ).toFixed(2)
-        )
-      : 100;
+function buildLatencySeries(
+  rows: Awaited<ReturnType<typeof queryLatencyByMinute>>
+): LatencyDataPoint[] {
+  const buckets = new Map<string, number[]>();
+  for (const row of rows) {
+    const key = formatTimeLabel(row.minute);
+    const list = buckets.get(key) ?? [];
+    list.push(row.latencyMs ?? 0);
+    buckets.set(key, list);
+  }
+
+  return Array.from(buckets.entries()).map(([time, values]) => {
+    const sorted = [...values].sort((a, b) => a - b);
+    const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
+    return {
+      time,
+      latencyMs: Math.round(avg),
+      p95Ms: Math.round(percentile(sorted, 0.95)),
+      p99Ms: Math.round(percentile(sorted, 0.99)),
+    };
+  });
+}
+
+function buildUptimeSeries(
+  rows: Awaited<ReturnType<typeof queryUptimeByDay>>
+): UptimeDataPoint[] {
+  return rows.map((row) => {
+    const up = Number(row.up_count);
+    const total = Number(row.total);
+    return {
+      date: formatDateLabel(row.day),
+      uptime: computeUptimePercentFromCounts(up, total),
+    };
+  });
+}
+
+export async function getOverviewPageData(): Promise<OverviewPageData> {
+  const since30d = new Date(Date.now() - THIRTY_DAYS_MS);
+  const since60m = new Date(Date.now() - SIXTY_MINUTES_MS);
+
+  const [
+    targetRows,
+    latestByTarget,
+    uptimeByTarget,
+    latencyRows,
+    uptimeRows,
+    activeIncidents,
+    resolvedIncidents,
+    activityEvents,
+  ] = await Promise.all([
+    prisma.monitoredTarget.findMany({ orderBy: { name: "asc" } }),
+    loadLatestChecksByTarget(),
+    loadUptimePercentByTarget(since30d),
+    queryLatencyByMinute(since60m),
+    queryUptimeByDay(since30d),
+    getActiveIncidents(),
+    getRecentIncidents(),
+    getActivityFeed(),
+  ]);
+
+  const latencyData = buildLatencySeries(latencyRows);
+  const uptimeData = buildUptimeSeries(uptimeRows);
+
+  const targets = buildTargetsWithStatus(
+    targetRows,
+    latestByTarget,
+    uptimeByTarget
+  );
+  const stats = deriveSummaryStats(targets, activeIncidents.length);
 
   return {
-    totalTargets: targets.length,
-    healthyTargets,
-    activeIncidents: activeIncidents.length,
-    avgLatencyMs,
-    avgUptimePercent,
+    targets,
+    stats,
+    latencyData,
+    uptimeData,
+    activeIncidents,
+    resolvedIncidents,
+    activityEvents,
   };
 }

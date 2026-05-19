@@ -5,20 +5,12 @@ import IncidentFeed from '@/components/incidents/IncidentFeed';
 import RecentActivity from '@/components/dashboard/RecentActivity';
 import LatencyChart from '@/components/charts/LatencyChart';
 import UptimeChart from '@/components/charts/UptimeChart';
-import {
-  getTargetsWithStatus,
-  getSummaryStats,
-  getLatencyTimeSeries,
-  getUptimeTimeSeries,
-  getActiveIncidents,
-  getRecentIncidents,
-  getActivityFeed,
-} from '@/lib/queries';
+import { getOverviewPageData } from '@/lib/queries';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const [
+  const {
     targets,
     stats,
     latencyData,
@@ -26,15 +18,7 @@ export default async function DashboardPage() {
     activeIncidents,
     resolvedIncidents,
     activityEvents,
-  ] = await Promise.all([
-    getTargetsWithStatus(),
-    getSummaryStats(),
-    getLatencyTimeSeries(),
-    getUptimeTimeSeries(),
-    getActiveIncidents(),
-    getRecentIncidents(),
-    getActivityFeed(),
-  ]);
+  } = await getOverviewPageData();
 
   const incidents = [...activeIncidents, ...resolvedIncidents.slice(0, 2)];
 
