@@ -47,8 +47,14 @@ apps/dashboard/
 │   └── status/                   # StatusPill, SeverityBadge
 └── lib/
     ├── db.ts                     # Prisma singleton (server-only)
-    ├── queries.ts                # All server-side data loading
-    ├── queries/sql.ts            # Raw SQL aggregates
+    ├── data/                     # Server-side data loading (by domain)
+    │   ├── index.ts              # Public exports for pages
+    │   ├── overview/load.ts      # getOverviewPageData bundle
+    │   ├── targets/list.ts
+    │   ├── incidents/detect.ts
+    │   ├── activity/recent.ts
+    │   └── health-checks/        # SQL + chart series + target detail
+    ├── queries.ts                # Re-exports from data/ (deprecated shim)
     ├── types.ts                  # UI types (MonitoredTarget, Incident, …)
     └── utils.ts                  # cn, formatLatency, formatRelativeTime, …
 ```
@@ -88,7 +94,7 @@ Single loader: `getOverviewPageData()` in one `Promise.all` (no duplicate 30-day
 
 ## Status model
 
-Prisma stores only `UP` | `DOWN`. The UI adds **DEGRADED** when the latest check is `UP` but `latencyMs` > **800ms** (`DEGRADED_LATENCY_MS` in `queries.ts`).
+Prisma stores only `UP` | `DOWN`. The UI adds **DEGRADED** when the latest check is `UP` but `latencyMs` > **800ms** (`DEGRADED_LATENCY_MS` in `lib/data/shared/constants.ts`).
 
 ---
 
@@ -98,9 +104,9 @@ Prisma stores only `UP` | `DOWN`. The UI adds **DEGRADED** when the latest check
 
 Server-only Prisma client; reused across requests in development via global singleton.
 
-### `lib/queries.ts`
+### `lib/data/`
 
-Main query module. Public exports:
+Main data module (`@/lib/data`). Public exports from `index.ts`:
 
 | Function | Purpose |
 |----------|---------|
@@ -113,16 +119,16 @@ Main query module. Public exports:
 | `getActivityFeed()` | Recent events |
 | `getSummaryStats()` | KPIs (calls `getTargetsWithStatus` — prefer overview bundle on `/`) |
 
-### `lib/queries/sql.ts`
+`lib/queries.ts` re-exports the same API for backward compatibility.
 
 Postgres-specific aggregates (parameterized via Prisma tagged templates):
 
-| Query | SQL technique |
-|-------|----------------|
-| Latest check per target | `DISTINCT ON ("targetId") … ORDER BY "checkedAt" DESC` |
-| 30d uptime per target | Prisma `groupBy` on `targetId` + `status` |
-| Uptime chart | `date_trunc('day', …)` + `COUNT(*) FILTER (WHERE status = 'UP')` |
-| Latency chart | Rows in 60m window, bucketed by minute in JS for avg/p95/p99 |
+| Query | Location | SQL technique |
+|-------|----------|----------------|
+| Latest check per target | `health-checks/latest-by-target.sql.ts` | `DISTINCT ON ("targetId") … ORDER BY "checkedAt" DESC` |
+| 30d uptime per target | `health-checks/uptime-percent-rollup.ts` | Prisma `groupBy` on `targetId` + `status` |
+| Uptime chart | `health-checks/uptime-daily-series.ts` | `date_trunc('day', …)` + `COUNT(*) FILTER (WHERE status = 'UP')` |
+| Latency chart | `health-checks/latency-series.ts` | Rows in 60m window, bucketed by minute in JS for avg/p95/p99 |
 
 Indexes on `HealthCheck` (`checkedAt`, `targetId + checkedAt DESC`) keep these fast as row count grows. See [database.md](./database.md).
 

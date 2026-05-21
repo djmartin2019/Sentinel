@@ -151,7 +151,7 @@ import { prisma } from "@/lib/db";
 const targets = await prisma.monitoredTarget.findMany();
 ```
 
-The dashboard also uses raw SQL for aggregates in `apps/dashboard/lib/queries/sql.ts` (see [dashboard.md](./dashboard.md#data-layer)).
+The dashboard also uses raw SQL for aggregates in `apps/dashboard/lib/data/health-checks/` (see [dashboard.md](./dashboard.md#data-layer)).
 
 ---
 

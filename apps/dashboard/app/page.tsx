@@ -1,13 +1,13 @@
-import Header from '@/components/layout/Header';
-import SummaryCards from '@/components/dashboard/SummaryCards';
-import ServicesTable from '@/components/dashboard/ServicesTable';
-import IncidentFeed from '@/components/incidents/IncidentFeed';
-import RecentActivity from '@/components/dashboard/RecentActivity';
-import LatencyChart from '@/components/charts/LatencyChart';
-import UptimeChart from '@/components/charts/UptimeChart';
-import { getOverviewPageData } from '@/lib/queries';
+import Header from "@/components/layout/Header";
+import SummaryCards from "@/components/dashboard/SummaryCards";
+import ServicesTable from "@/components/dashboard/ServicesTable";
+import IncidentFeed from "@/components/incidents/IncidentFeed";
+import RecentActivity from "@/components/dashboard/RecentActivity";
+import LatencyChart from "@/components/charts/LatencyChart";
+import UptimeChart from "@/components/charts/UptimeChart";
+import { getOverviewPageData } from "@/lib/data";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const {
@@ -51,8 +51,12 @@ export default async function DashboardPage() {
           </div>
           <div className="xl:col-span-2 rounded border border-border bg-bg-card p-4 flex items-center justify-center">
             <div className="text-center">
-              <p className="text-xs font-mono text-text-muted">Telemetry heatmap — coming soon</p>
-              <p className="text-[11px] text-text-dim mt-1">Connect telemetry-collector to enable</p>
+              <p className="text-xs font-mono text-text-muted">
+                Telemetry heatmap — coming soon
+              </p>
+              <p className="text-[11px] text-text-dim mt-1">
+                Connect telemetry-collector to enable
+              </p>
             </div>
           </div>
         </div>

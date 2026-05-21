@@ -42,7 +42,7 @@ How Sentinel fits together today: what runs where, how data flows, and what is s
        Browser
 ```
 
-The dashboard does **not** call the Express API for page data today. It uses `apps/dashboard/lib/queries.ts` against the same database the checker writes to.
+The dashboard does **not** call the Express API for page data today. It uses `apps/dashboard/lib/data/` against the same database the checker writes to.
 
 Incidents on the UI are **derived** from recent `HealthCheck` rows (e.g. three consecutive `DOWN` results), not stored in a separate `incidents` table.
 
@@ -86,7 +86,7 @@ Dev uses host-run Node processes for checker and dashboard; only Postgres runs i
 `HealthCheck` grows continuously (~20k rows/day with 7 targets at 30s intervals). The dashboard uses:
 
 - Indexes on `checkedAt` and `(targetId, checkedAt DESC)`
-- SQL aggregates (`GROUP BY`, `date_trunc`, `DISTINCT ON`) in [`apps/dashboard/lib/queries/sql.ts`](../apps/dashboard/lib/queries/sql.ts)
+- SQL aggregates (`GROUP BY`, `date_trunc`, `DISTINCT ON`) in [`apps/dashboard/lib/data/health-checks/`](../apps/dashboard/lib/data/health-checks/)
 - A bundled overview loader `getOverviewPageData()` to avoid duplicate 30-day scans per page load
 
 See [dashboard.md](./dashboard.md#data-layer) for details.

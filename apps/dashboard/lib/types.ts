@@ -1,8 +1,46 @@
-export type TargetStatus = 'UP' | 'DOWN' | 'DEGRADED';
-export type IncidentSeverity = 'critical' | 'warning' | 'info';
-export type CheckStatus = 'UP' | 'DOWN';
-export type Region = 'us-east-1' | 'us-west-2' | 'eu-west-1' | 'ap-southeast-1' | 'ap-northeast-1';
+export type TargetStatus = "UP" | "DOWN" | "DEGRADED";
+export type IncidentSeverity = "critical" | "warning" | "info";
+export type PrismaCheckStatus = "UP" | "DOWN";
+export type CheckStatus = "UP" | "DOWN";
 
+export type Region =
+  | "us-east-1"
+  | "us-west-2"
+  | "eu-west-1"
+  | "ap-southeast-1"
+  | "ap-northeast-1";
+
+export type LatestCheck = {
+  status: PrismaCheckStatus;
+  latencyMs: number | null;
+  checkedAt: Date;
+};
+
+export type UptimeDayRow = {
+    day: Date;
+    up_count: bigint;
+    total: bigint;
+};
+
+export type LatencyMintueRow = {
+    minute: Date;
+    latencyMs: number | null;
+};
+
+export type LatestCheckRow = {
+    targetId: string;
+    status: "UP" | "DOWN";
+    latencyMs: number | null;
+    checkedAt: Date;
+};
+
+export interface SummaryStats {
+  totalTargets: number;
+  healthyTargets: number;
+  activeIncidents: number;
+  avgLatencyMs: number;
+  avgUptimePercent: number;
+}
 export interface MonitoredTarget {
   id: string;
   name: string;
@@ -53,9 +91,11 @@ export interface UptimeDataPoint {
 
 export interface ActivityEvent {
   id: string;
-  type: 'check' | 'incident' | 'recovery' | 'alert';
+  type: "check" | "incident" | "recovery" | "alert";
   message: string;
   targetName: string;
   timestamp: string;
-  status: 'UP' | 'DOWN' | 'DEGRADED';
+  status: "UP" | "DOWN" | "DEGRADED";
 }
+
+
