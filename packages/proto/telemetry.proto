@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package telemetry;
+
+service TelemetryService {
+  rpc SendMetrics (MetricsRequest)
+    returns (MetricsResponse);
+}
+
+message Metric {
+  string agentId = 1;
+  string metricType = 2;
+  double value = 3;
+  int64  timestamp = 4;
+}
+
+message MetricsRequest {
+  repeated Metric metrics = 1;
+}
+
+message MetricsResponse {
+  bool success = 1;
+}

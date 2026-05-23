@@ -1,5 +1,12 @@
-# Local development — Postgres only. Apps run via ./dev.sh (pnpm dev / tsx watch).
+# Local development — Postgres + optional telemetry stack (collector + agent).
+# Apps run via ./dev.sh (pnpm dev / tsx watch) unless you use the agent profile below.
 # Production VPS stack: docker-compose.prod.yml + ./build.sh
+#
+# Start telemetry stack for agent testing:
+#   docker compose --profile telemetry up -d --build
+#
+# Collector gRPC: localhost:50051
+# Agent sends CPU metrics every METRICS_INTERVAL_MS (default 10s).
 
 services:
   postgres:
@@ -16,6 +23,45 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  collector:
+    profiles: ["telemetry"]
+    build:
+      context: .
+      dockerfile: apps/collector/Dockerfile
+    environment:
+      NODE_ENV: production
+      GRPC_HOST: 0.0.0.0
+      GRPC_PORT: 50051
+      DATABASE_URL: postgresql://sentinel:sentinel@postgres:5432/sentinel?schema=public
+      LOG_LEVEL: info
+    ports:
+      - "50051:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  agent:
+    profiles: ["telemetry"]
+    build:
+      context: .
+      dockerfile: apps/agent/Dockerfile
+    environment:
+      NODE_ENV: production
+      AGENT_ID: docker-agent-1
+      COLLECTOR_GRPC_URL: collector:50051
+      METRICS_INTERVAL_MS: 10000
+      LOG_LEVEL: info
+    depends_on:
+      - collector
+    restart: unless-stopped
 
 volumes:
   postgres_data:

@@ -39,3 +39,13 @@ model MonitoredTarget {
 
     checks HealthCheck[]
 }
+
+model TelemetryMetric {
+    id          String      @id @default(cuid())
+    agentId     String
+    metricType  String
+    value       Float
+    recordedAt  DateTime    @default(now())
+
+    @@index([agentId, metricType, recordedAt])
+}

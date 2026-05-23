@@ -16,7 +16,9 @@ FROM (
     ('seed_target_pokevote',      'PokeVote',         'https://pokevote.djm-apps.com/',        30, NOW()),
     ('seed_target_daveymaps',     'Davey Maps',       'https://davey-maps.djm-apps.com/',      30, NOW()),
     ('seed_target_githublookup',  'Github Lookup',    'https://githublookup.djm-apps.com/',    30, NOW()),
-    ('seed_target_foodlymap',     'Foodly Map',       'https://foodlymap.com/',                30, NOW())
+    ('seed_target_foodlymap',     'Foodly Map',       'https://foodlymap.com/',                30, NOW()),
+    ('seed_target_daveypics',     'Davey Pics',       'https://www.daveypicsstudio.com/',      30, NOW()),
+    ('seed_target_rendorix',      'Rendorix',         'https://rendorix.dev/',                 30, NOW()),
 ) AS v(id, name, url, interval, "createdAt")
 WHERE NOT EXISTS (
   SELECT 1 FROM "MonitoredTarget" t WHERE t.url = v.url
