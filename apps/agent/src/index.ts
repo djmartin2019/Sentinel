@@ -1,3 +1,6 @@
+import { config } from "dotenv";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import pino from "pino";
 
 import { collectCpuMetric } from "./collectors/cpu.collector.js";
@@ -6,6 +9,11 @@ import {
   createTelemetryClient,
   closeTelemtryClient,
 } from "./grpc/telemetry.client.js";
+
+const rootEnv = resolve(__dirname, "../../../.env");
+if (existsSync(rootEnv)) {
+  config({ path: rootEnv });
+}
 
 const log = pino({
   name: "agent",

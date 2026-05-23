@@ -14,12 +14,13 @@ Lightweight self-hosted uptime monitoring: HTTP health checks, a Postgres-backed
 
 ```bash
 pnpm install
-cp .env.production.example .env   # then set DATABASE_URL to 127.0.0.1 for dev
+cp .env.example .env
 ./dev.sh
 ```
 
-- Dashboard: http://localhost:3010
+- Dashboard: http://localhost:3000
 - Postgres: `127.0.0.1:5432` (Docker via `docker-compose.yml`)
+- Telemetry (optional): `docker compose --profile telemetry up -d --build` — collector gRPC on `127.0.0.1:50051` (see `.env.example`)
 
 ### Production (VPS)
 

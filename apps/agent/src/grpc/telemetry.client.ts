@@ -5,6 +5,8 @@ import * as protoLoader from "@grpc/proto-loader";
 
 import type { MetricPayload } from "../types/telemetry.types.js";
 
+const RPC_TIMEOUT_MS = Number(process.env.GRPC_RPC_TIMEOUT_MS ?? "5000");
+
 const PROTO_PATH = path.resolve(
   process.cwd(),
   "../../packages/proto/telemetry.proto",
@@ -28,16 +30,18 @@ const TelemetryService =
 export type TelemetryClient = grpc.Client & {
   SendMetrics: (
     request: { metrics: MetricPayload[] },
+    options: grpc.CallOptions,
     callback: grpc.requestCallback<{ success: boolean }>,
   ) => void;
 };
 
 // Call once at startup
 export function createTelemetryClient(collectorUrl: string): TelemetryClient {
-  return new TelemetryService(
-    collectorUrl,
-    grpc.credentials.createInsecure(),
-  ) as unknown as TelemetryClient;
+  return new TelemetryService(collectorUrl, grpc.credentials.createInsecure(), {
+    "grpc.keepalive_time_ms": 10_000,
+    "grpc.keepalive_timeout_ms": 5_000,
+    "grpc.keepalive_permit_without_calls": 1,
+  }) as unknown as TelemetryClient;
 }
 
 // Reuse the same client on every tick
@@ -45,10 +49,11 @@ export async function sendMetrics(
   client: TelemetryClient,
   metrics: MetricPayload[],
 ): Promise<boolean> {
+  const deadline = new Date(Date.now() + RPC_TIMEOUT_MS);
   return new Promise((resolve, reject) => {
-    client.SendMetrics({ metrics }, (error, response) => {
+    client.SendMetrics({ metrics }, { deadline }, (error, response) => {
       if (error) {
-        reject(error);
+        reject(error); // DEADLINE_EXCEEDED if timed out
         return;
       }
       resolve(response?.success ?? false);

@@ -1,8 +1,51 @@
 .DS_Store
-node_modules
-**/dist
-# Keep environment variables out of version control
-.env
 
+# Dependencies
+node_modules
+**/node_modules
 .pnpm-store/
+
+# Build output
+**/dist
+.next
+**/.next
+out
+**/out
+build
+**/build
+*.tsbuildinfo
+
+# Generated
 generated/
+
+# Environment — commit *.example only
+.env
+.env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.test
+.env.test.local
+.env.*.local
+!.env.example
+!.env.production.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Test / coverage
+coverage
+**/coverage
+
+# IDE (optional local settings)
+.vscode/
+.idea/
+
+# Accidental nested package roots (monorepo uses root pnpm-lock.yaml)
+apps/dashboard/pnpm-lock.yaml
+apps/dashboard/pnpm-workspace.yaml
+apps/dashboard/next.config.ts

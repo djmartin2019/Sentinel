@@ -1,10 +1,17 @@
-import path from "node:path";
+import { config } from "dotenv";
+import { existsSync } from "node:fs";
+import path, { resolve } from "node:path";
 
 import * as grpc from "@grpc/grpc-js";
 import * as protoLoader from "@grpc/proto-loader";
 import pino from "pino";
 
 import { handleMetrics } from "./services/telemetry.service.js";
+
+const rootEnv = resolve(__dirname, "../../../.env");
+if (existsSync(rootEnv)) {
+  config({ path: rootEnv });
+}
 
 const log = pino({ name: "collector", level: process.env.LOG_LEVEL ?? "info" });
 
