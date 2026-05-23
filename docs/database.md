@@ -90,6 +90,22 @@ enum CheckStatus {
 
 Maps to a native Postgres `ENUM` type.
 
+### `TelemetryMetric`
+
+Host metrics from the telemetry pipeline (written by the **collector**, not the checker).
+
+| Column | Postgres type | Notes |
+|---|---|---|
+| `id` | `TEXT` (PK) | CUID |
+| `agentId` | `TEXT` | From agent env / proto |
+| `metricType` | `TEXT` | e.g. `cpu` |
+| `value` | `DOUBLE PRECISION` | Metric value |
+| `recordedAt` | `TIMESTAMP` | Agent timestamp at collection |
+
+Index: `(agentId, metricType, recordedAt)`.
+
+See [agent.md](./agent.md) and [collector.md](./collector.md) for ingest flow. The dashboard does not read this table yet.
+
 ---
 
 ## Migrations
@@ -108,6 +124,7 @@ Prisma Migrate tracks schema changes as versioned SQL files under `prisma/migrat
 |---|---|
 | `20260515000044_init` | Creates the `CheckStatus` enum, `MonitoredTarget` table, `HealthCheck` table, and the foreign key constraint |
 | `20260517120000_healthcheck_indexes` | Adds indexes on `checkedAt` and `(targetId, checkedAt DESC)` |
+| `20260518120000_telemetry_metric` | Creates `TelemetryMetric` table and index |
 
 ### Running migrations
 

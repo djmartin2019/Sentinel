@@ -2,9 +2,9 @@
 
 Lightweight self-hosted uptime monitoring: HTTP health checks, a Postgres-backed history, and a Next.js operations dashboard.
 
-**What works today:** checker worker, PostgreSQL + Prisma, live dashboard (overview, targets, incidents, per-target detail), production Docker deployment behind Apache.
+**What works today:** checker worker, PostgreSQL + Prisma, live dashboard (overview, targets, incidents, per-target detail), production Docker deployment behind Apache, **telemetry agent + collector (dev / Docker `telemetry` profile)**.
 
-**Planned:** gRPC collector/agents, full REST API surface, persistent incidents table, alerts.
+**Planned:** dashboard telemetry charts, collector in prod compose, full REST API surface, persistent incidents table, alerts.
 
 ---
 
@@ -41,15 +41,17 @@ Configure Apache to proxy to port **3010** (dashboard). See [docs/deployment.md]
 Checker (every 30s)  --HTTP-->  your URLs
         |
         v
-   PostgreSQL  (MonitoredTarget, HealthCheck)
-        ^
-        |
-   Dashboard  (Next.js + Prisma, reads DB directly)
+   PostgreSQL  (MonitoredTarget, HealthCheck, TelemetryMetric)
+        ^                    ^
+        |                    | gRPC SendMetrics (optional)
+   Dashboard          Collector <-- Agent (CPU metrics)
+   (Next.js + Prisma)
 ```
 
 1. **Targets** are rows in `MonitoredTarget` (name, url, interval).
 2. The **checker** pings each URL and appends a `HealthCheck` row (`UP`/`DOWN`, latency, status code).
 3. The **dashboard** aggregates those rows for charts, tables, and derived incidents (e.g. 3× `DOWN` in a row = active incident).
+4. The **agent** collects host metrics and sends them to the **collector** over gRPC; the collector writes `TelemetryMetric` rows (dashboard UI for telemetry is not wired yet).
 
 The Express **API** (`apps/api`) is in the stack for future REST use; the dashboard does not depend on it yet.
 
@@ -65,8 +67,8 @@ sentinel/
 │   ├── checker/          # Background HTTP health-check worker
 │   ├── dashboard/        # Next.js UI (production: port 3010)
 │   ├── api/              # Express API (scaffold, port 4010)
-│   ├── collector/        # Planned gRPC telemetry
-│   └── agent/            # Planned host agent
+│   ├── collector/        # gRPC telemetry server (ingest → TelemetryMetric)
+│   └── agent/            # Host metrics client (CPU today)
 ├── prisma/
 │   ├── schema.prisma
 │   ├── migrations/
@@ -89,6 +91,8 @@ sentinel/
 | [docs/deployment.md](docs/deployment.md)     | VPS deploy, `.env`, Apache, troubleshooting         |
 | [docs/dashboard.md](docs/dashboard.md)       | Pages, queries, UI, mobile layout                   |
 | [docs/checker.md](docs/checker.md)           | Scheduler, HTTP checks, Docker worker               |
+| [docs/agent.md](docs/agent.md)               | gRPC client, collectors, scheduler, timeouts        |
+| [docs/collector.md](docs/collector.md)       | gRPC server, TelemetryMetric persistence            |
 | [docs/database.md](docs/database.md)         | Prisma schema, migrations, indexes, seeding         |
 
 ---
@@ -116,6 +120,17 @@ sentinel/
 | postgres  | Internal    | Persistent volume           |
 
 Only dashboard and API should be proxied from Apache. Checker and Postgres stay on the Docker internal network.
+
+---
+
+## Telemetry stack (optional, dev)
+
+```bash
+docker compose --profile telemetry up -d --build
+docker compose --profile telemetry logs -f agent collector
+```
+
+See [docs/agent.md](docs/agent.md) and [docs/collector.md](docs/collector.md).
 
 ---
 
