@@ -24,6 +24,9 @@ ENV DATABASE_URL="postgresql://sentinel:sentinel@postgres:5432/sentinel?schema=p
 RUN pnpm exec prisma generate --schema=prisma/schema.prisma
 WORKDIR /app/apps/dashboard
 RUN pnpm build
+RUN test -f app/icon.png \
+  && test -f app/opengraph-image.png \
+  && test -f public/OG-Sentinel.png
 
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -36,6 +39,7 @@ RUN apk add --no-cache curl
 COPY --from=builder /app/apps/dashboard/public ./apps/dashboard/public
 COPY --from=builder /app/apps/dashboard/.next/standalone ./
 COPY --from=builder /app/apps/dashboard/.next/static ./apps/dashboard/.next/static
+RUN test -f apps/dashboard/public/OG-Sentinel.png
 
 EXPOSE 3010
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
