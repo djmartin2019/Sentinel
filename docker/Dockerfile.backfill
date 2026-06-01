@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1
+# One-shot incident backfill from HealthCheck history — idempotent (skips targets with data).
+
+FROM node:22-alpine AS base
+RUN corepack enable && corepack prepare pnpm@10.26.0 --activate
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/checker/package.json apps/checker/
+COPY prisma prisma/
+COPY apps/checker/src/db apps/checker/src/db
+COPY apps/checker/src/incidents apps/checker/src/incidents
+COPY apps/checker/src/scripts apps/checker/src/scripts
+RUN pnpm install --frozen-lockfile
+
+ENV NODE_ENV=production
+CMD ["pnpm", "db:backfill-incidents"]

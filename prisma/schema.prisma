@@ -37,7 +37,30 @@ model MonitoredTarget {
     interval    Int         @default(30)
     createdAt   DateTime    @default(now())
 
-    checks HealthCheck[]
+    checks    HealthCheck[]
+    incidents Incident[]
+}
+
+model Incident {
+    id          String          @id @default(cuid())
+
+    targetId    String
+    target      MonitoredTarget @relation(fields: [targetId], references: [id])
+
+    title       String
+    severity    String
+    description String
+
+    startedAt   DateTime
+    resolvedAt  DateTime?
+    downCount   Int             @default(0)
+
+    createdAt   DateTime        @default(now())
+    updatedAt   DateTime        @updatedAt
+
+    @@index([resolvedAt])
+    @@index([targetId, resolvedAt])
+    @@index([startedAt])
 }
 
 model TelemetryMetric {

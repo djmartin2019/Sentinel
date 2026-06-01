@@ -1,6 +1,10 @@
 import { prisma } from "../db/prisma";
 import { logger } from "../logger/logger";
 import { httpCheck } from "../checks/httpCheck";
+import {
+    cleanupOldIncidents,
+    reconcileIncidentForTarget,
+} from "../incidents/lifecycle";
 
 export async function runChecks() {
     logger.info("Starting check cycle");
@@ -22,11 +26,18 @@ export async function runChecks() {
             },
         });
 
+        await reconcileIncidentForTarget(target.id, target.name);
+
         logger.info({
             target: target.url,
             status: result.status,
             latencyMs: result.latencyMs,
         });
+    }
+
+    const deleted = await cleanupOldIncidents();
+    if (deleted > 0) {
+        logger.info({ deleted }, "Cleaned up old resolved incidents");
     }
 
     logger.info("Check cycle complete");

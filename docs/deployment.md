@@ -36,18 +36,28 @@ Use a password without URL-breaking characters (`@`, `:`, `#`, `?`), or URL-enco
 
 ## Deploy
 
+**Full deploy (pull + update):**
+
 ```bash
 ./build.sh
 ```
 
-`build.sh` will:
+**Update only** (after you have already `git pull` on the server):
 
-1. `git pull --ff-only`
-2. Build images (`dashboard`, `api`, `checker`, `migrate`)
-3. Start Postgres and wait for health
-4. Run `prisma migrate deploy` via the migrate container
-5. Run idempotent seed [`prisma/seed/monitored-targets.sql`](../prisma/seed/monitored-targets.sql) (skips existing URLs)
-6. Start `dashboard`, `api`, and `checker`
+```bash
+./update.sh
+```
+
+`build.sh` runs `git pull --ff-only`, then `./update.sh`.
+
+`update.sh` will:
+
+1. Build images (`dashboard`, `api`, `checker`, `migrate`, `backfill`)
+2. Start Postgres and wait for health
+3. Run `prisma migrate deploy` via the migrate container
+4. Run idempotent seed [`prisma/seed/monitored-targets.sql`](../prisma/seed/monitored-targets.sql) (skips existing URLs)
+5. Run idempotent incident backfill via the backfill container (skips targets that already have incidents; set `SKIP_BACKFILL=1` to skip)
+6. Recreate and start `dashboard`, `api`, and `checker`
 
 ### Services and ports
 
@@ -113,6 +123,7 @@ The checker picks up new targets on the next cycle (within 30 seconds).
 |------|---------|
 | `docker-compose.prod.yml` | Production stack |
 | `docker-compose.yml` | Dev Postgres only |
-| `build.sh` | Build, migrate, seed, start |
+| `build.sh` | Git pull + `update.sh` |
+| `update.sh` | Build images, migrate, seed, backfill, restart apps |
 | `apps/*/Dockerfile` | Per-app production images |
 | `.env.production.example` | Env template |

@@ -1,0 +1,4 @@
+export const CONSECUTIVE_DOWN_FOR_INCIDENT = 3;
+export const CONSECUTIVE_UP_FOR_RESOLVE = 3;
+export const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+export const RECENT_CHECKS_LOOKBACK = 10;
