@@ -69,11 +69,8 @@ export default async function IncidentsPage() {
                           {incident.description}
                         </p>
                         <div className="flex items-center gap-4 text-[11px] font-mono text-text-muted">
-                          <span>
-                            Target:{" "}
-                            <span className="text-text-secondary">
-                              {incident.targetName}
-                            </span>
+                          <span className="text-accent-cyan bg-accent-cyan/10 px-1.5 py-0.5 rounded border border-accent-cyan/30">
+                            {incident.targetName}
                           </span>
                           <span>
                             Started:{" "}
@@ -131,7 +128,9 @@ export default async function IncidentsPage() {
                       {incident.description}
                     </p>
                     <div className="flex items-center gap-3 mt-1 text-[11px] font-mono text-text-muted">
-                      <span>{incident.targetName}</span>
+                      <span className="text-accent-cyan bg-accent-cyan/10 px-1.5 py-0.5 rounded border border-accent-cyan/30">
+                        {incident.targetName}
+                      </span>
                       <span>{formatRelativeTime(incident.startedAt)}</span>
                       {incident.resolvedAt && (
                         <span className="text-status-up">

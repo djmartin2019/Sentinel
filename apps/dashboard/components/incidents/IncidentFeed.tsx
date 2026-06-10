@@ -83,7 +83,7 @@ export default function IncidentFeed({ incidents }: IncidentFeedProps) {
                       {incident.description}
                     </p>
                     <div className="flex items-center gap-3 text-[11px] font-mono text-text-muted">
-                      <span className="text-text-dim bg-bg-elevated px-1.5 py-0.5 rounded border border-border/50">
+                      <span className="text-accent-cyan bg-accent-cyan/10 px-1.5 py-0.5 rounded border border-accent-cyan/30">
                         {incident.targetName}
                       </span>
                       <span>{formatRelativeTime(incident.startedAt)}</span>
