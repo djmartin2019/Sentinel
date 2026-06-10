@@ -41,7 +41,9 @@ export default function ServicesTable({ targets }: ServicesTableProps) {
                     {h}
                   </th>
                 ))}
-                <th className="px-4 py-2.5" />
+                <th className="px-4 py-2.5 text-right text-[10px] font-medium uppercase tracking-widest text-text-muted whitespace-nowrap">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -49,7 +51,7 @@ export default function ServicesTable({ targets }: ServicesTableProps) {
                 <tr
                   key={target.id}
                   className={cn(
-                    'group border-b border-border/50 hover:bg-bg-elevated transition-colors duration-100',
+                    'border-b border-border/50 hover:bg-bg-elevated transition-colors duration-100',
                     i === targets.length - 1 && 'border-b-0'
                   )}
                 >
@@ -81,12 +83,13 @@ export default function ServicesTable({ targets }: ServicesTableProps) {
                   <td className="px-4 py-3 font-mono text-xs text-text-muted whitespace-nowrap">
                     {formatRelativeTime(target.lastChecked)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-right">
                     <Link
                       href={`/target/${target.id}`}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-text-muted hover:text-accent-cyan"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium bg-accent-cyan/10 text-accent-cyan border border-accent-cyan/30 rounded hover:bg-accent-cyan/15 transition-colors whitespace-nowrap"
                     >
-                      <ArrowUpRight className="w-3 h-3" />
+                      View target
+                      <ArrowUpRight className="w-3 h-3 shrink-0" />
                     </Link>
                   </td>
                 </tr>
