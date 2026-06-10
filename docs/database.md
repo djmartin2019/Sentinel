@@ -168,7 +168,7 @@ import { prisma } from "@/lib/db";
 const targets = await prisma.monitoredTarget.findMany();
 ```
 
-The dashboard also uses raw SQL for aggregates in `apps/dashboard/lib/data/health-checks/` (see [dashboard.md](./dashboard.md#data-layer)).
+The dashboard also uses raw SQL for aggregates in `apps/dashboard/lib/data/health-checks/` (see [dashboard.md](./dashboard.md#data-layer)). The planned retention-worker rollup tables are documented in [database-rollups.md](./database-rollups.md).
 
 ---
 
