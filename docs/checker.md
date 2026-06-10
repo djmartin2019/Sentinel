@@ -1,6 +1,6 @@
 # Checker app
 
-The `checker` is a background worker that loads every `MonitoredTarget` from Postgres, runs an HTTP GET against each URL, and inserts a `HealthCheck` row with the result. It runs on a fixed **30-second** interval (the per-target `interval` column is stored but not yet used by the scheduler).
+The `checker` is a background worker that loads every `MonitoredTarget` from Postgres, runs an HTTP GET against each URL, and inserts a `HealthCheck` row with the result. It runs on a fixed **2-minute** interval (the per-target `interval` column is stored but not yet used by the scheduler).
 
 ## How it works
 
@@ -8,7 +8,7 @@ The `checker` is a background worker that loads every `MonitoredTarget` from Pos
 index.ts
   └── startScheduler()
         ├── runChecks() immediately
-        └── setInterval(runChecks, 30_000)
+        └── setInterval(runChecks, 120_000)
 
 runChecks()  (checker.service.ts)
   ├── prisma.monitoredTarget.findMany()
@@ -22,7 +22,7 @@ Loads root `.env` when present (for local dev). In Docker, `DATABASE_URL` comes 
 
 ### Scheduler — `src/scheduler/scheduler.ts`
 
-Runs `runChecks()` on startup and every 30 seconds. Errors in a cycle are caught and logged so one failure does not crash the process.
+Runs `runChecks()` on startup and every 2 minutes. Errors in a cycle are caught and logged so one failure does not crash the process.
 
 ### HTTP check — `src/checks/httpCheck.ts`
 
@@ -37,7 +37,7 @@ Runs `runChecks()` on startup and every 30 seconds. Errors in a cycle are caught
 
 ## Database writes
 
-Each successful cycle adds **one row per target** to `HealthCheck`. Row volume grows continuously (~2,880 rows/target/day at 30s intervals). The dashboard aggregates reads; consider a retention policy as data grows.
+Each successful cycle adds **one row per target** to `HealthCheck`. Row volume grows continuously (~720 rows/target/day at 2-minute intervals). The dashboard aggregates reads; consider a retention policy as data grows.
 
 ## Running locally
 

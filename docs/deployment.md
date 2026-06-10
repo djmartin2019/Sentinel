@@ -105,7 +105,7 @@ docker compose -f docker-compose.prod.yml exec postgres \
   psql -U sentinel -d sentinel
 ```
 
-The checker picks up new targets on the next cycle (within 30 seconds).
+The checker picks up new targets on the next cycle (within 2 minutes).
 
 ## Troubleshooting
 

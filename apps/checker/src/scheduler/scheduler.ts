@@ -12,5 +12,5 @@ export function startScheduler() {
 
     runChecksSafe();
 
-    setInterval(runChecksSafe, 30_000);
+    setInterval(runChecksSafe, 120_000);
 }

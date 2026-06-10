@@ -7,7 +7,7 @@ How Sentinel fits together today: what runs where, how data flows, and what is s
 | Component | Status | Role |
 |-----------|--------|------|
 | **PostgreSQL** | Production | Stores `MonitoredTarget` and `HealthCheck` rows |
-| **Checker** | Production | HTTP health checks every 30s, writes results to DB |
+| **Checker** | Production | HTTP health checks every 2 minutes, writes results to DB |
 | **Dashboard** | Production | Next.js UI reads Postgres directly via Prisma |
 | **API** | Scaffold | Express server with `/health`; REST surface not wired to dashboard yet |
 | **Collector** | Dev / Docker profile | gRPC ingest on `:50051`, writes `TelemetryMetric` |
@@ -21,7 +21,7 @@ How Sentinel fits together today: what runs where, how data flows, and what is s
            | HTTP GET (5s timeout)
            |
   +--------+---------+
-  |  Checker worker  |  every 30s, all targets
+  |  Checker worker  |  every 2 minutes, all targets
   +--------+---------+
            |
            | INSERT HealthCheck
@@ -102,7 +102,7 @@ Dev uses host-run Node processes for checker and dashboard; only Postgres runs i
 
 ## Query performance
 
-`HealthCheck` grows continuously (~20k rows/day with 7 targets at 30s intervals). The dashboard uses:
+`HealthCheck` grows continuously (~5k rows/day with 7 targets at 2-minute intervals). The dashboard uses:
 
 - Indexes on `checkedAt` and `(targetId, checkedAt DESC)`
 - SQL aggregates (`GROUP BY`, `date_trunc`, `DISTINCT ON`) in [`apps/dashboard/lib/data/health-checks/`](../apps/dashboard/lib/data/health-checks/)

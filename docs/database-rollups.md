@@ -102,7 +102,7 @@ The checker writes one `HealthCheck` row per target check. Dashboard queries cur
 
 ## Why Rollups Are Needed
 
-At a 30-second interval, each target creates about 2,880 raw checks per day. With multiple targets, the raw table grows quickly:
+At a 2-minute interval, each target creates about 720 raw checks per day. With multiple targets, the raw table grows quickly:
 
 ```text
 daily rows = target count * 2 checks per minute * 60 minutes * 24 hours

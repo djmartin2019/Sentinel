@@ -38,7 +38,7 @@ Configure Apache to proxy to port **3010** (dashboard). See [docs/deployment.md]
 ## How it works
 
 ```text
-Checker (every 30s)  --HTTP-->  your URLs
+Checker (every 2m)  --HTTP-->  your URLs
         |
         v
    PostgreSQL  (MonitoredTarget, HealthCheck, TelemetryMetric)
