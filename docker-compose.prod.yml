@@ -55,6 +55,20 @@ services:
         condition: service_healthy
     restart: "no"
 
+  backfill-aggregates:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backfill-aggregates
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    networks:
+      - sentinel-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   dashboard:
     build:
       context: .
@@ -110,6 +124,28 @@ services:
       - sentinel-internal
     # Checker has no HTTP API — must not be exposed to the host or Apache.
     # It only talks to postgres on the internal network.
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'node dist/index.js' > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  retention:
+    build:
+      context: .
+      dockerfile: apps/retention/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      RETENTION_INTERVAL_MS: ${RETENTION_INTERVAL_MS:-300000}
+    networks:
+      - sentinel-internal
     depends_on:
       postgres:
         condition: service_healthy

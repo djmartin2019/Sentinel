@@ -27,8 +27,8 @@ compose() {
 
 [[ -f "$ENV_FILE" ]] || die "Missing $ENV_FILE — copy .env.production.example and set secrets."
 
-info "Building production images (dashboard, api, checker, migrate, backfill)..."
-compose build dashboard api checker migrate backfill
+info "Building production images (dashboard, api, checker, retention, migrate, backfill)..."
+compose build dashboard api checker retention migrate backfill
 
 info "Ensuring Postgres is running..."
 compose up -d postgres
@@ -67,7 +67,7 @@ else
 fi
 
 info "Restarting application containers with new images..."
-compose up -d --force-recreate dashboard api checker
+compose up -d --force-recreate dashboard api checker retention
 ok "Stack updated."
 
 echo ""

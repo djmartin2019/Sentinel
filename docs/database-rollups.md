@@ -410,3 +410,51 @@ Planned deployment changes:
 6. Add root package scripts and production Docker Compose service wiring.
 7. Update dashboard queries to read rollups where useful.
 
+## Historical Aggregate Backfill
+
+After the aggregate-table migration is deployed, run a **one-time backfill** to populate rollup tables from existing `HealthCheck` history. This is separate from the ongoing retention worker, which only scans rolling windows and then prunes.
+
+The backfill:
+
+1. Upserts all completed 5-minute buckets from raw `HealthCheck`
+2. Rolls 5-minute rows into hourly aggregates
+3. Rolls hourly rows into daily aggregates
+4. **Does not delete** any raw or aggregate rows
+
+It is **idempotent** — safe to rerun. Each bucket is upserted by `(targetId, bucketStart)`.
+
+### Production
+
+Recommended order:
+
+1. Deploy schema migration (`compose run --rm migrate`)
+2. Run the backfill script
+3. Start or restart the retention worker for ongoing maintenance
+
+```bash
+./scripts/backfill-healthcheck-aggregates.sh
+```
+
+This builds the `backfill-aggregates` one-shot container and runs it on `sentinel-internal`. It is **not** part of `./update.sh`.
+
+### Local (host)
+
+After migrations and with Postgres running:
+
+```bash
+pnpm db:backfill-aggregates
+```
+
+Ensure `.env` uses `127.0.0.1` as the database host when running on the host.
+
+### Verification
+
+```sql
+SELECT COUNT(*) FROM "HealthCheck";
+SELECT COUNT(*) FROM "HealthCheckAggregate5m";
+SELECT COUNT(*) FROM "HealthCheckAggregateHourly";
+SELECT COUNT(*) FROM "HealthCheckAggregateDaily";
+```
+
+After backfill, raw check counts should be unchanged. Aggregate counts should reflect completed buckets across your history.
+

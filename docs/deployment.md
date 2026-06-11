@@ -52,12 +52,14 @@ Use a password without URL-breaking characters (`@`, `:`, `#`, `?`), or URL-enco
 
 `update.sh` will:
 
-1. Build images (`dashboard`, `api`, `checker`, `migrate`, `backfill`)
+1. Build images (`dashboard`, `api`, `checker`, `retention`, `migrate`, `backfill`)
 2. Start Postgres and wait for health
 3. Run `prisma migrate deploy` via the migrate container
 4. Run idempotent seed [`prisma/seed/monitored-targets.sql`](../prisma/seed/monitored-targets.sql) (skips existing URLs)
 5. Run idempotent incident backfill via the backfill container (skips targets that already have incidents; set `SKIP_BACKFILL=1` to skip)
-6. Recreate and start `dashboard`, `api`, and `checker`
+6. Recreate and start `dashboard`, `api`, `checker`, and `retention`
+
+**One-time aggregate backfill** (after the rollup migration): run manually with [`./scripts/backfill-healthcheck-aggregates.sh`](../scripts/backfill-healthcheck-aggregates.sh). See [database-rollups.md](./database-rollups.md#historical-aggregate-backfill). Not included in `./update.sh`.
 
 ### Services and ports
 

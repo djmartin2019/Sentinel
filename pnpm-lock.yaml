@@ -231,6 +231,31 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
+  apps/retention:
+    dependencies:
+      '@prisma/client':
+        specifier: ^6.19.3
+        version: 6.19.3(prisma@6.19.3(typescript@6.0.3))(typescript@6.0.3)
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      pino:
+        specifier: ^10.3.1
+        version: 10.3.1
+    devDependencies:
+      '@types/node':
+        specifier: ^25.7.0
+        version: 25.8.0
+      pino-pretty:
+        specifier: ^13.1.3
+        version: 13.1.3
+      tsx:
+        specifier: ^4.21.0
+        version: 4.22.0
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
 packages:
 
   '@alloc/quick-lru@5.2.0':
