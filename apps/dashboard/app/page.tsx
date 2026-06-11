@@ -20,7 +20,7 @@ export default async function DashboardPage() {
     activityEvents,
   } = await getOverviewPageData();
 
-  const incidents = [...activeIncidents, ...resolvedIncidents.slice(0, 2)];
+  const incidents = [...activeIncidents, ...resolvedIncidents.slice(0, 5)];
 
   return (
     <>

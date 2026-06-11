@@ -58,6 +58,7 @@ Use a password without URL-breaking characters (`@`, `:`, `#`, `?`), or URL-enco
 4. Run idempotent seed [`prisma/seed/monitored-targets.sql`](../prisma/seed/monitored-targets.sql) (skips existing URLs)
 5. Run idempotent incident backfill via the backfill container (skips targets that already have incidents; set `SKIP_BACKFILL=1` to skip)
 6. Recreate and start `dashboard`, `api`, `checker`, and `retention`
+7. Prune unused Docker images and build cache (`docker system prune -af` + `docker builder prune -af`; **does not** remove volumes, so Postgres data is kept). Set `SKIP_DOCKER_PRUNE=1` to skip.
 
 **One-time aggregate backfill** (after the rollup migration): run manually with [`./scripts/backfill-healthcheck-aggregates.sh`](../scripts/backfill-healthcheck-aggregates.sh). See [database-rollups.md](./database-rollups.md#historical-aggregate-backfill). Not included in `./update.sh`.
 

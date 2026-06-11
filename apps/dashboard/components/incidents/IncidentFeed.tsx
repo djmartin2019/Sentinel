@@ -23,7 +23,7 @@ interface IncidentFeedProps {
 
 export default function IncidentFeed({ incidents }: IncidentFeedProps) {
   const active = incidents.filter((i) => !i.resolved);
-  const resolved = incidents.filter((i) => i.resolved).slice(0, 2);
+  const resolved = incidents.filter((i) => i.resolved).slice(0, 5);
   const all = [...active, ...resolved];
 
   return (

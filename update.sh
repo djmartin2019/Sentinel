@@ -10,6 +10,7 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env}"
 PUBLIC_HOST="${PUBLIC_HOST:-sentinel.djm-apps.com}"
 SKIP_BACKFILL="${SKIP_BACKFILL:-0}"
+SKIP_DOCKER_PRUNE="${SKIP_DOCKER_PRUNE:-0}"
 
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'
@@ -69,6 +70,15 @@ fi
 info "Restarting application containers with new images..."
 compose up -d --force-recreate dashboard api checker retention
 ok "Stack updated."
+
+if [[ "$SKIP_DOCKER_PRUNE" != "1" ]]; then
+  info "Pruning unused Docker images and build cache (volumes are kept)..."
+  docker system prune -af
+  docker builder prune -af
+  ok "Docker prune finished."
+else
+  info "Skipping Docker prune (SKIP_DOCKER_PRUNE=1)."
+fi
 
 echo ""
 info "Container status:"
