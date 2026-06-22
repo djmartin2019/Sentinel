@@ -5,11 +5,17 @@ import IncidentFeed from "@/components/incidents/IncidentFeed";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import LatencyChart from "@/components/charts/LatencyChart";
 import UptimeChart from "@/components/charts/UptimeChart";
-import { getOverviewPageData } from "@/lib/data";
+import { getOverviewPageData, parseLatencyRange } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ target?: string; range?: string }>;
+}) {
+  const { target: rawTargetId, range: rawRange } = await searchParams;
+  const range = parseLatencyRange(rawRange);
   const {
     targets,
     stats,
@@ -18,7 +24,12 @@ export default async function DashboardPage() {
     activeIncidents,
     resolvedIncidents,
     activityEvents,
-  } = await getOverviewPageData();
+  } = await getOverviewPageData(rawTargetId, range);
+
+  // Ignore invalid IDs, fall back to "all targets"
+  const selectedTarget = rawTargetId
+    ? targets.find((t) => t.id === rawTargetId)
+    : undefined;
 
   const incidents = [...activeIncidents, ...resolvedIncidents.slice(0, 5)];
 
@@ -32,8 +43,17 @@ export default async function DashboardPage() {
         <SummaryCards stats={stats} />
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <LatencyChart data={latencyData} />
-          <UptimeChart data={uptimeData} />
+          <LatencyChart
+            data={latencyData}
+            targets={targets.map((t) => ({ id: t.id, name: t.name }))}
+            selectedTargetId={selectedTarget?.id}
+            selectedRange={range}
+          />
+          <UptimeChart
+            data={uptimeData}
+            targets={targets.map((t) => ({ id: t.id, name: t.name }))}
+            selectedTargetId={selectedTarget?.id}
+          />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">

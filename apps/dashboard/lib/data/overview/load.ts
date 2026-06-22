@@ -1,6 +1,6 @@
 import { prisma } from "../../db";
 
-import { queryLatencyByMinute } from "../health-checks/latency-series";
+import { getLatencyRollupTimeSeries } from "../health-checks/latency-rollup-series";
 
 import { loadUptimePercentByTarget } from "../health-checks/uptime-percent-rollup";
 
@@ -12,8 +12,6 @@ import {
 import { getActiveIncidents, getRecentIncidents } from "../incidents/detect";
 import { getActivityFeed } from "../activity/recent";
 
-import { buildLatencySeries } from "../health-checks/latency-series";
-
 import { buildTargetsWithStatus } from "../targets/list";
 import { deriveSummaryStats } from "../targets/list";
 
@@ -21,12 +19,13 @@ import type {
   ActivityEvent,
   Incident,
   LatencyDataPoint,
+  LatencyRange,
   MonitoredTarget,
   SummaryStats,
   UptimeDataPoint,
 } from "../../types";
 
-import { THIRTY_DAYS_MS, SIXTY_MINUTES_MS } from "../shared/constants";
+import { THIRTY_DAYS_MS } from "../shared/constants";
 
 export interface OverviewPageData {
   targets: MonitoredTarget[];
@@ -38,15 +37,17 @@ export interface OverviewPageData {
   activityEvents: ActivityEvent[];
 }
 
-export async function getOverviewPageData(): Promise<OverviewPageData> {
+export async function getOverviewPageData(
+  targetId?: string,
+  range: LatencyRange = "60m",
+): Promise<OverviewPageData> {
   const since30d = new Date(Date.now() - THIRTY_DAYS_MS);
-  const since60m = new Date(Date.now() - SIXTY_MINUTES_MS);
 
   const [
     targetRows,
     latestByTarget,
     uptimeByTarget,
-    latencyRows,
+    latencyData,
     uptimeRows,
     activeIncidents,
     resolvedIncidents,
@@ -55,14 +56,13 @@ export async function getOverviewPageData(): Promise<OverviewPageData> {
     prisma.monitoredTarget.findMany({ orderBy: { name: "asc" } }),
     loadLatestChecksByTarget(),
     loadUptimePercentByTarget(since30d),
-    queryLatencyByMinute(since60m),
-    queryUptimeByDay(since30d),
+    getLatencyRollupTimeSeries(range, targetId),
+    queryUptimeByDay(since30d, targetId),
     getActiveIncidents(),
     getRecentIncidents(),
     getActivityFeed(),
   ]);
 
-  const latencyData = buildLatencySeries(latencyRows);
   const uptimeData = buildUptimeSeries(uptimeRows);
 
   const targets = buildTargetsWithStatus(

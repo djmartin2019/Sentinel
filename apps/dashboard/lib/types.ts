@@ -2,6 +2,57 @@ export type TargetStatus = "UP" | "DOWN" | "DEGRADED";
 export type IncidentSeverity = "critical" | "warning" | "info";
 export type PrismaCheckStatus = "UP" | "DOWN";
 export type CheckStatus = "UP" | "DOWN";
+export type LatencyRange = "30m" | "60m" | "1d" | "7d" | "30d" | "90d";
+
+export const LATENCY_RANGE_MS: Record<LatencyRange, number> = {
+  "30m": 60 * 30 * 1000,
+  "60m": 60 * 60 * 1000,
+  "1d": 24 * 60 * 60 * 1000,
+  "7d": 7 * 24 * 60 * 60 * 1000,
+  "30d": 30 * 24 * 60 * 60 * 1000,
+  "90d": 90 * 24 * 60 * 60 * 1000,
+};
+
+export function resolveLatencySource(range: LatencyRange) {
+  switch (range) {
+    case "30m":
+    case "60m":
+      return "5m" as const;
+    case "1d":
+      return "hourly" as const;
+    case "7d":
+      return "daily" as const;
+    case "30d":
+      return "daily" as const;
+    case "90d":
+      return "daily" as const;
+  }
+}
+
+export const LATENCY_RANGES = [
+  "30m",
+  "60m",
+  "1d",
+  "7d",
+  "30d",
+  "90d",
+] as const satisfies readonly LatencyRange[];
+
+export const LATENCY_RANGE_LABELS: Record<LatencyRange, string> = {
+  "30m": "Last 30m",
+  "60m": "Last 60m",
+  "1d": "Last 24h",
+  "7d": "Last 7d",
+  "30d": "Last 30d",
+  "90d": "Last 90d",
+};
+
+export function parseLatencyRange(value?: string): LatencyRange {
+  if (value && (LATENCY_RANGES as readonly string[]).includes(value)) {
+    return value as LatencyRange;
+  }
+  return "60m";
+}
 
 export type Region =
   | "us-east-1"
@@ -17,21 +68,21 @@ export type LatestCheck = {
 };
 
 export type UptimeDayRow = {
-    day: Date;
-    up_count: bigint;
-    total: bigint;
+  day: Date;
+  up_count: bigint;
+  total: bigint;
 };
 
 export type LatencyMintueRow = {
-    minute: Date;
-    latencyMs: number | null;
+  minute: Date;
+  latencyMs: number | null;
 };
 
 export type LatestCheckRow = {
-    targetId: string;
-    status: "UP" | "DOWN";
-    latencyMs: number | null;
-    checkedAt: Date;
+  targetId: string;
+  status: "UP" | "DOWN";
+  latencyMs: number | null;
+  checkedAt: Date;
 };
 
 export interface SummaryStats {
@@ -97,5 +148,3 @@ export interface ActivityEvent {
   timestamp: string;
   status: "UP" | "DOWN" | "DEGRADED";
 }
-
-

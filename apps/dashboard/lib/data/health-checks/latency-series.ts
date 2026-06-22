@@ -2,9 +2,10 @@ import { prisma } from "../../db";
 
 import type { LatencyMintueRow, LatencyDataPoint } from "../../types";
 
-import { SIXTY_MINUTES_MS } from "../shared/constants";
+import type { LatencyRange } from "../../types";
 
 import { formatTimeLabel, percentile } from "../util/data-utils";
+import { getLatencyRollupTimeSeries } from "./latency-rollup-series";
 
 export async function queryLatencyByMinute(
   since: Date,
@@ -59,8 +60,7 @@ export function buildLatencySeries(
 
 export async function getLatencyTimeSeries(
   targetId?: string,
+  range: LatencyRange = "60m",
 ): Promise<LatencyDataPoint[]> {
-  const since = new Date(Date.now() - SIXTY_MINUTES_MS);
-  const rows = await queryLatencyByMinute(since, targetId);
-  return buildLatencySeries(rows);
+  return getLatencyRollupTimeSeries(range, targetId);
 }

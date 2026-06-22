@@ -8,6 +8,7 @@ import {
   getTargetById,
   getLatencyTimeSeries,
   getUptimeTimeSeries,
+  parseLatencyRange,
 } from "@/lib/data";
 import {
   formatLatency,
@@ -22,13 +23,17 @@ export const dynamic = "force-dynamic";
 
 export default async function TargetDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ range?: string }>;
 }) {
   const { id } = await params;
+  const { range: rawRange } = await searchParams;
+  const range = parseLatencyRange(rawRange);
   const [target, latencyData, uptimeData] = await Promise.all([
     getTargetById(id),
-    getLatencyTimeSeries(id),
+    getLatencyTimeSeries(id, range),
     getUptimeTimeSeries(id),
   ]);
 
@@ -119,7 +124,11 @@ export default async function TargetDetailPage({
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <LatencyChart data={latencyData} subtitle={target.name} />
+          <LatencyChart
+            data={latencyData}
+            subtitle={target.name}
+            selectedRange={range}
+          />
           <UptimeChart data={uptimeData} subtitle={target.name} />
         </div>
 
