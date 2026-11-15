@@ -110,7 +110,9 @@ export default function Sidebar({ systemStatus }: { systemStatus?: ReactNode }) 
           })}
         </nav>
 
-        <div className={cn(collapsed && 'md:hidden')}>{systemStatus}</div>
+        <div className={cn('pb-[env(safe-area-inset-bottom)]', collapsed && 'md:hidden')}>
+          {systemStatus}
+        </div>
 
         <button
           type="button"

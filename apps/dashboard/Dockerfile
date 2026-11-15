@@ -24,7 +24,7 @@ ENV DATABASE_URL="postgresql://sentinel:sentinel@postgres:5432/sentinel?schema=p
 RUN pnpm exec prisma generate --schema=prisma/schema.prisma
 WORKDIR /app/apps/dashboard
 RUN pnpm build
-RUN test -f app/icon.png \
+RUN test -f app/icon.tsx \
   && test -f app/opengraph-image.png \
   && test -f public/OG-Sentinel.png
 

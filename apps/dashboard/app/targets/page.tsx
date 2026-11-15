@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, ArrowUpRight } from "lucide-react";
+import { Plus } from "lucide-react";
 import Header from "@/components/layout/Header";
 import { StatusPill } from "@/components/status/StatusPill";
 import { getTargetsWithStatus } from "@/lib/data";
@@ -68,7 +68,6 @@ export default async function TargetsPage() {
                       "Uptime",
                       "Interval",
                       "Last Check",
-                      "",
                     ].map((h) => (
                       <th
                         key={h}
@@ -89,9 +88,12 @@ export default async function TargetsPage() {
                       )}
                     >
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs font-medium text-text-primary">
+                        <Link
+                          href={`/target/${target.id}`}
+                          className="font-medium text-text-primary underline-offset-4 decoration-accent-cyan/60 transition-colors hover:text-accent-cyan hover:underline focus-visible:underline focus-visible:outline-none"
+                        >
                           {target.name}
-                        </span>
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
                         <StatusPill status={target.status} pulse size="sm" />
@@ -139,14 +141,6 @@ export default async function TargetsPage() {
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-text-muted whitespace-nowrap">
                         {formatRelativeTime(target.lastChecked)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/target/${target.id}`}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-text-muted hover:text-accent-cyan"
-                        >
-                          <ArrowUpRight className="w-3.5 h-3.5" />
-                        </Link>
                       </td>
                     </tr>
                   ))}

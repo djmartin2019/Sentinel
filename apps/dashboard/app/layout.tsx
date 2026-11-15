@@ -1,9 +1,10 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Suspense } from 'react';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import AppShell from '@/components/layout/AppShell';
 import SystemStatus, { SystemStatusFallback } from '@/components/layout/SystemStatus';
+import RegisterServiceWorker from '@/components/pwa/RegisterServiceWorker';
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' });
@@ -17,9 +18,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title,
   description,
-  icons: {
-    icon: [{ url: '/icon.png', sizes: '48x48', type: 'image/png' }],
-    shortcut: '/icon.png',
+  applicationName: 'Sentinel',
+  appleWebApp: {
+    capable: true,
+    title: 'Sentinel',
+    statusBarStyle: 'black',
   },
   openGraph: {
     type: 'website',
@@ -33,6 +36,10 @@ export const metadata: Metadata = {
     title,
     description,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#000000',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -52,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           {children}
         </AppShell>
+        <RegisterServiceWorker />
       </body>
     </html>
   );

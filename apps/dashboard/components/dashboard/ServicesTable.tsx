@@ -54,7 +54,7 @@ export default function ServicesTable({ targets }: ServicesTableProps) {
                     {/* Stretched link makes the whole row clickable */}
                     <Link
                       href={`/target/${target.id}`}
-                      className="font-medium text-text-primary after:absolute after:inset-0 group-hover:text-accent-cyan"
+                      className="font-medium text-text-primary underline-offset-4 decoration-accent-cyan/60 after:absolute after:inset-0 group-hover:text-accent-cyan group-hover:underline"
                     >
                       {target.name}
                     </Link>
