@@ -5,6 +5,7 @@ import {
     cleanupOldIncidents,
     reconcileIncidentForTarget,
 } from "../incidents/lifecycle";
+import { reconcileSlownessForTarget } from "../notifications/slowness";
 
 export async function runChecks() {
     logger.info("Starting check cycle");
@@ -27,6 +28,9 @@ export async function runChecks() {
         });
 
         await reconcileIncidentForTarget(target.id, target.name);
+        await reconcileSlownessForTarget(target.id, target.name).catch((err) =>
+            logger.error({ err, target: target.url }, "Slowness check failed"),
+        );
 
         logger.info({
             target: target.url,

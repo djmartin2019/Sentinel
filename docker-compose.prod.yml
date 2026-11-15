@@ -79,6 +79,10 @@ services:
       PORT: 3010
       HOSTNAME: 0.0.0.0
       DATABASE_URL: ${DATABASE_URL}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      ALERTS_PIN: ${ALERTS_PIN:-}
     ports:
       - "3010:3010"
     networks:
@@ -120,6 +124,10 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      ALERT_TIMEZONE: ${ALERT_TIMEZONE:-America/Chicago}
     networks:
       - sentinel-internal
     # Checker has no HTTP API — must not be exposed to the host or Apache.

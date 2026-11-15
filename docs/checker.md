@@ -39,6 +39,19 @@ Runs `runChecks()` on startup and every 2 minutes. Errors in a cycle are caught 
 
 Each successful cycle adds **one row per target** to `HealthCheck`. Row volume grows continuously (~720 rows/target/day at 2-minute intervals). The dashboard aggregates reads; consider a retention policy as data grows.
 
+## Push alerts
+
+After each check, the checker may send a Web Push alert (see [deployment.md](./deployment.md#push-alerts-optional) for setup):
+
+| Event | Where | Rule |
+|-------|-------|------|
+| Down | `incidents/lifecycle.ts` | Incident opened (3 consecutive `DOWN`) |
+| Critical | `incidents/lifecycle.ts` | Open incident's severity crosses to `critical` (5+ `DOWN`) |
+| Recovered | `incidents/lifecycle.ts` | Incident resolved (3 consecutive `UP`) |
+| Slow | `notifications/slowness.ts` | 5 consecutive `UP` checks over 800ms; re-arms silently once fast (`TargetAlertState.slowActive`) |
+
+Down / critical / recovered share a notification `tag` per incident, so each replaces the previous one on the device. Sending lives in `notifications/push.ts`; it never throws into the check cycle. The incident backfill script does not send alerts.
+
 ## Running locally
 
 From monorepo root (with Postgres up):

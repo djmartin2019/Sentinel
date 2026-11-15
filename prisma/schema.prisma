@@ -42,6 +42,7 @@ model MonitoredTarget {
     aggregates5m        HealthCheckAggregate5m[]
     aggregatesHourly    HealthCheckAggregateHourly[]
     aggregatesDaily     HealthCheckAggregateDaily[]
+    alertState          TargetAlertState?
 }
 
 model HealthCheckAggregate5m {
@@ -152,4 +153,23 @@ model TelemetryMetric {
     recordedAt  DateTime    @default(now())
 
     @@index([agentId, metricType, recordedAt])
+}
+
+/// Web Push subscriptions (one per device that enabled alerts).
+model PushSubscription {
+    id            String    @id @default(cuid())
+    endpoint      String    @unique
+    p256dh        String
+    auth          String
+    userAgent     String?
+    createdAt     DateTime  @default(now())
+    lastSuccessAt DateTime?
+}
+
+/// Per-target alert dedupe state (e.g. so sustained slowness alerts once).
+model TargetAlertState {
+    targetId    String          @id
+    target      MonitoredTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+    slowActive  Boolean         @default(false)
+    updatedAt   DateTime        @updatedAt
 }

@@ -110,6 +110,36 @@ docker compose -f docker-compose.prod.yml exec postgres \
 
 The checker picks up new targets on the next cycle (within 2 minutes).
 
+## Push alerts (optional)
+
+Sentinel can send Web Push notifications to the installed PWA when a target goes down, escalates to critical (5 failed checks), recovers, or stays slow (>800ms for 5 checks).
+
+1. Generate VAPID keys (once):
+
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+
+2. Add to `.env` on the server:
+
+   ```env
+   VAPID_PUBLIC_KEY=<public key>
+   VAPID_PRIVATE_KEY=<private key>
+   VAPID_SUBJECT=mailto:you@example.com
+   ALERTS_PIN=<a PIN only you know>
+   ALERT_TIMEZONE=America/Chicago
+   ```
+
+3. `./build.sh` (applies the `PushSubscription` / `TargetAlertState` migration and passes the vars to `dashboard` + `checker`).
+4. On your phone: open the dashboard in Safari → Share → **Add to Home Screen**, open Sentinel from the icon, tap the **bell** → enter the PIN → **Enable alerts** → Allow. Tap **Send test** to confirm.
+
+Notes:
+
+- iOS requires 16.4+ and the Home Screen app; Safari tabs can't receive push.
+- If the VAPID vars are missing, the checker logs one warning and runs normally without alerts.
+- Changing VAPID keys invalidates all existing subscriptions — re-enable alerts on each device.
+- Expired subscriptions are deleted automatically the next time a send returns 404/410.
+
 ## Troubleshooting
 
 | Symptom | Check |

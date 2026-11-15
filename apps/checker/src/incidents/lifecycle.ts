@@ -5,6 +5,7 @@ import {
     RECENT_CHECKS_LOOKBACK,
     THIRTY_DAYS_MS,
 } from "./constants";
+import { formatDuration, notify } from "../notifications/push";
 import {
     buildIncidentDescription,
     buildIncidentTitle,
@@ -41,7 +42,7 @@ export async function reconcileIncidentForTarget(
             const startedAt = streakStartAt(snapshots, "DOWN");
             if (!startedAt) return;
 
-            await prisma.incident.create({
+            const incident = await prisma.incident.create({
                 data: {
                     targetId,
                     title: buildIncidentTitle(targetName),
@@ -50,6 +51,13 @@ export async function reconcileIncidentForTarget(
                     startedAt,
                     downCount: consecutiveDown,
                 },
+            });
+
+            await notify({
+                title: `🔴 ${targetName} is down`,
+                body: `Failed ${consecutiveDown} checks in a row · since ${formatClock(startedAt)}`,
+                url: `/target/${targetId}`,
+                tag: `incident-${incident.id}`,
             });
         }
         return;
@@ -72,20 +80,45 @@ export async function reconcileIncidentForTarget(
                 ),
             },
         });
+
+        await notify({
+            title: `✅ ${targetName} recovered`,
+            body: `Down for ${formatDuration(resolvedAt.getTime() - openIncident.startedAt.getTime())}`,
+            url: `/target/${targetId}`,
+            tag: `incident-${openIncident.id}`,
+        });
         return;
     }
 
     if (consecutiveDown > 0) {
         const downCount = Math.max(openIncident.downCount, consecutiveDown);
+        const severity = deriveSeverity(downCount);
         await prisma.incident.update({
             where: { id: openIncident.id },
             data: {
                 downCount,
-                severity: deriveSeverity(downCount),
+                severity,
                 description: buildIncidentDescription(downCount),
             },
         });
+
+        if (severity === "critical" && openIncident.severity !== "critical") {
+            await notify({
+                title: `🔴 ${targetName} still down — critical`,
+                body: `Failed ${downCount} checks · down ${formatDuration(Date.now() - openIncident.startedAt.getTime())}`,
+                url: `/target/${targetId}`,
+                tag: `incident-${openIncident.id}`,
+            });
+        }
     }
+}
+
+function formatClock(d: Date): string {
+    return d.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: process.env.ALERT_TIMEZONE || "America/Chicago",
+    });
 }
 
 export async function cleanupOldIncidents(): Promise<number> {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { RefreshCw, Menu } from 'lucide-react';
 import { useNavigation } from '@/components/layout/NavigationContext';
 import { cn } from '@/lib/utils';
+import AlertsPanel from '@/components/pwa/AlertsPanel';
 
 interface HeaderProps {
   title: string;
@@ -76,6 +77,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
           />
           <span className="hidden sm:inline">Refresh</span>
         </button>
+        <AlertsPanel />
       </div>
     </header>
   );
