@@ -30,9 +30,9 @@ export function StatusPill({ status, pulse = false, size = 'md' }: StatusPillPro
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-sm border font-mono font-medium tracking-wider',
+        'inline-flex items-center gap-1.5 rounded-full border font-mono font-medium tracking-wider',
         config.pill,
-        size === 'sm' ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'
+        size === 'sm' ? 'text-[10px] px-2 py-0.5' : 'text-xs px-2 py-1'
       )}
     >
       <span className="relative flex shrink-0 w-1.5 h-1.5">
@@ -59,7 +59,7 @@ const severityConfig: Record<IncidentSeverity, { label: string; classes: string 
 export function SeverityBadge({ severity }: SeverityBadgeProps) {
   const config = severityConfig[severity];
   return (
-    <span className={cn('inline-flex items-center rounded-sm border font-mono font-medium tracking-wider text-[10px] px-1.5 py-0.5', config.classes)}>
+    <span className={cn('inline-flex items-center rounded-md border font-mono font-medium tracking-wider text-[10px] px-1.5 py-0.5', config.classes)}>
       {config.label}
     </span>
   );

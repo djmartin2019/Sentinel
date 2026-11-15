@@ -135,6 +135,14 @@ export interface LatencyDataPoint {
   p99Ms: number;
 }
 
+export interface DailyUptimeBucket {
+  /** UTC day, YYYY-MM-DD */
+  day: string;
+  /** null when there were no checks that day */
+  uptime: number | null;
+  checks: number;
+}
+
 export interface UptimeDataPoint {
   date: string;
   uptime: number;

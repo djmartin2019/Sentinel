@@ -58,7 +58,7 @@ Incidents on the UI are **derived** from recent `HealthCheck` rows (e.g. three c
 
 - Started with `docker compose --profile telemetry up` (dev only today).
 - Not in production `docker-compose.prod.yml` yet (commented stub).
-- Dashboard heatmap does not query this table yet.
+- **Dormant:** telemetry is off the roadmap; the dashboard does not query this table.
 
 Details: [agent.md](./agent.md), [collector.md](./collector.md).
 

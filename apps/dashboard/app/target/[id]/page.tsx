@@ -88,7 +88,7 @@ export default async function TargetDetailPage({
   return (
     <>
       <Header title={target.name} subtitle={target.url} />
-      <div className="p-5 max-w-[1600px] space-y-5">
+      <div className="mx-auto max-w-[1400px] p-4 sm:p-6 space-y-5">
         <div className="flex items-center gap-3">
           <Link
             href="/targets"
@@ -113,9 +113,9 @@ export default async function TargetDetailPage({
           {statItems.map(({ label, value }) => (
             <div
               key={label}
-              className="p-3 rounded border border-border bg-bg-card"
+              className="p-3 card"
             >
-              <p className="text-[10px] uppercase tracking-widest font-medium text-text-muted mb-2">
+              <p className="text-xs font-medium text-text-muted mb-2">
                 {label}
               </p>
               <div>{value}</div>
@@ -132,14 +132,14 @@ export default async function TargetDetailPage({
           <UptimeChart data={uptimeData} subtitle={target.name} />
         </div>
 
-        <div className="rounded border border-border bg-bg-card overflow-hidden">
+        <div className="card overflow-hidden">
           <div className="px-4 py-3 border-b border-border">
             <h2 className="text-sm font-semibold text-text-primary">
               Recent Checks
             </h2>
           </div>
           {target.checks.length === 0 ? (
-            <div className="px-4 py-8 text-center text-xs font-mono text-text-muted">
+            <div className="px-4 py-8 text-center text-xs text-text-muted">
               No checks recorded yet
             </div>
           ) : (
@@ -151,7 +151,7 @@ export default async function TargetDetailPage({
                       (h) => (
                         <th
                           key={h}
-                          className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-widest text-text-muted"
+                          className="px-4 py-2.5 text-left text-[11px] font-medium text-text-muted"
                         >
                           {h}
                         </th>
@@ -168,7 +168,7 @@ export default async function TargetDetailPage({
                     return (
                       <tr
                         key={check.id}
-                        className="border-b border-border/50 last:border-b-0 hover:bg-bg-elevated transition-colors"
+                        className="border-b border-border/50 last:border-b-0 hover:bg-white/[0.025] transition-colors"
                       >
                         <td className="px-4 py-2.5 font-mono text-xs text-text-muted">
                           {new Date(check.checkedAt).toLocaleTimeString(

@@ -1,10 +1,12 @@
 # Sentinel
 
-Lightweight self-hosted uptime monitoring: HTTP health checks, a Postgres-backed history, and a Next.js operations dashboard.
+Lightweight self-hosted uptime monitoring: HTTP health checks, a Postgres-backed history, and a Next.js dashboard focused on **uptime and incidents**.
 
-**What works today:** checker worker, PostgreSQL + Prisma, live dashboard (overview, targets, incidents, per-target detail), production Docker deployment behind Apache, **telemetry agent + collector (dev / Docker `telemetry` profile)**.
+**What works today:** checker worker, incident tracking, retention/rollup worker, PostgreSQL + Prisma, live dashboard (overview with 90-day uptime history, targets, incidents, per-target detail), production Docker deployment behind Apache.
 
-**Planned:** dashboard telemetry charts, collector in prod compose, full REST API surface, persistent incidents table, alerts.
+**Planned:** alerts/notifications, full REST API surface.
+
+> Host telemetry (`apps/agent` + `apps/collector`) is **dormant and off the roadmap**. The code and `TelemetryMetric` table remain, but the dashboard no longer surfaces telemetry.
 
 ---
 
@@ -20,7 +22,6 @@ cp .env.example .env
 
 - Dashboard: http://localhost:3000
 - Postgres: `127.0.0.1:5432` (Docker via `docker-compose.yml`)
-- Telemetry (optional): `docker compose --profile telemetry up -d --build` — collector gRPC on `127.0.0.1:50051` (see `.env.example`)
 
 ### Production (VPS)
 
@@ -38,20 +39,20 @@ Configure Apache to proxy to port **3010** (dashboard). See [docs/deployment.md]
 ## How it works
 
 ```text
-Checker (every 2m)  --HTTP-->  your URLs
+Checker (every 1m)  --HTTP-->  your URLs
         |
         v
-   PostgreSQL  (MonitoredTarget, HealthCheck, TelemetryMetric)
-        ^                    ^
-        |                    | gRPC SendMetrics (optional)
-   Dashboard          Collector <-- Agent (CPU metrics)
+   PostgreSQL  (MonitoredTarget, HealthCheck, Incident, rollups)
+        ^                ^
+        |                | 5m / hourly / daily aggregates
+   Dashboard          Retention worker
    (Next.js + Prisma)
 ```
 
 1. **Targets** are rows in `MonitoredTarget` (name, url, interval).
 2. The **checker** pings each URL and appends a `HealthCheck` row (`UP`/`DOWN`, latency, status code).
 3. The **dashboard** aggregates those rows for charts, tables, and derived incidents (e.g. 3× `DOWN` in a row = active incident).
-4. The **agent** collects host metrics and sends them to the **collector** over gRPC; the collector writes `TelemetryMetric` rows (dashboard UI for telemetry is not wired yet).
+4. The **retention** worker rolls raw checks into 5m / hourly / daily aggregates and prunes old raw rows.
 
 The Express **API** (`apps/api`) is in the stack for future REST use; the dashboard does not depend on it yet.
 
@@ -67,8 +68,9 @@ sentinel/
 │   ├── checker/          # Background HTTP health-check worker
 │   ├── dashboard/        # Next.js UI (production: port 3010)
 │   ├── api/              # Express API (scaffold, port 4010)
-│   ├── collector/        # gRPC telemetry server (ingest → TelemetryMetric)
-│   └── agent/            # Host metrics client (CPU today)
+│   ├── retention/        # Rollup + pruning worker
+│   ├── collector/        # (dormant) gRPC telemetry server
+│   └── agent/            # (dormant) host metrics client
 ├── prisma/
 │   ├── schema.prisma
 │   ├── migrations/
@@ -91,8 +93,8 @@ sentinel/
 | [docs/deployment.md](docs/deployment.md)     | VPS deploy, `.env`, Apache, troubleshooting         |
 | [docs/dashboard.md](docs/dashboard.md)       | Pages, queries, UI, mobile layout                   |
 | [docs/checker.md](docs/checker.md)           | Scheduler, HTTP checks, Docker worker               |
-| [docs/agent.md](docs/agent.md)               | gRPC client, collectors, scheduler, timeouts        |
-| [docs/collector.md](docs/collector.md)       | gRPC server, TelemetryMetric persistence            |
+| [docs/agent.md](docs/agent.md)               | (dormant) telemetry agent                           |
+| [docs/collector.md](docs/collector.md)       | (dormant) telemetry collector                       |
 | [docs/database.md](docs/database.md)         | Prisma schema, migrations, indexes, seeding         |
 
 ---
@@ -123,16 +125,6 @@ Only dashboard and API should be proxied from Apache. Checker and Postgres stay 
 
 ---
 
-## Telemetry stack (optional, dev)
-
-```bash
-docker compose --profile telemetry up -d --build
-docker compose --profile telemetry logs -f agent collector
-```
-
-See [docs/agent.md](docs/agent.md) and [docs/collector.md](docs/collector.md).
-
----
 
 ## Common commands
 

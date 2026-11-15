@@ -41,7 +41,7 @@ apps/dashboard/
 │   │   ├── NavigationContext.tsx # Mobile drawer state
 │   │   ├── Sidebar.tsx           # Nav; overlay on mobile, fixed on md+
 │   │   └── Header.tsx            # Title, menu button, refresh
-│   ├── dashboard/                # SummaryCards, ServicesTable, RecentActivity
+│   ├── dashboard/                # StatusBanner, SummaryCards, UptimeBars, ServicesTable, RecentActivity
 │   ├── charts/                   # LatencyChart, UptimeChart (Recharts)
 │   ├── incidents/                # IncidentFeed
 │   └── status/                   # StatusPill, SeverityBadge
@@ -71,12 +71,14 @@ Single loader: `getOverviewPageData()` in one `Promise.all` (no duplicate 30-day
 
 | Section | Data source |
 |---------|-------------|
+| Status banner | Derived from target statuses + active incident count |
 | Summary cards | Derived from targets + active incident count |
+| Uptime history | 90 daily bars per target: `HealthCheckAggregateDaily`, with raw `HealthCheck` filling days not yet rolled up (always today) — `loadDailyUptimeByTarget()` |
 | Latency chart | Last 60 minutes, SQL + per-minute bucketing |
 | Uptime chart | Last 30 days, `date_trunc('day')` aggregates |
 | Services table | All targets with status, latency, 30d uptime |
 | Incident feed | Derived incidents (active + 2 recent resolved) |
-| Activity feed | Last 20 `HealthCheck` rows with target names |
+| Status changes | UP / DEGRADED / DOWN transitions from raw checks (last 7 days, `LAG()` window) |
 
 ### `/targets`
 

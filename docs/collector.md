@@ -1,5 +1,7 @@
 # Collector app
 
+> **Status: dormant.** Telemetry is no longer on the roadmap and the dashboard does not surface it. This code is kept for reference only; Sentinel currently focuses on uptime and incidents.
+
 The **collector** is the gRPC **server** for host telemetry. Agents call `SendMetrics`; the collector validates nothing beyond Prisma insert today, persists rows to `TelemetryMetric`, and returns `{ success: true }`.
 
 Agents never get a `DATABASE_URL` — only the collector writes telemetry to Postgres.

@@ -31,10 +31,10 @@ export default async function IncidentsPage() {
         title="Incidents"
         subtitle={`${active.length} active · ${resolved.length} resolved`}
       />
-      <div className="p-5 max-w-[1600px] space-y-5">
+      <div className="mx-auto max-w-[1400px] p-4 sm:p-6 space-y-5">
         {active.length > 0 && (
           <section>
-            <h2 className="text-[11px] font-medium uppercase tracking-widest text-text-muted mb-3">
+            <h2 className="text-xs font-medium text-text-muted mb-3">
               Active
             </h2>
             <div className="space-y-3">
@@ -44,7 +44,7 @@ export default async function IncidentsPage() {
                   <div
                     key={incident.id}
                     className={cn(
-                      "rounded border bg-bg-card p-4",
+                      "card p-4",
                       incident.severity === "critical"
                         ? "border-severity-critical/40 border-l-2 border-l-severity-critical"
                         : "border-border",
@@ -69,7 +69,7 @@ export default async function IncidentsPage() {
                           {incident.description}
                         </p>
                         <div className="flex items-center gap-4 text-[11px] font-mono text-text-muted">
-                          <span className="text-accent-cyan bg-accent-cyan/10 px-1.5 py-0.5 rounded border border-accent-cyan/30">
+                          <span className="text-text-secondary bg-white/[0.04] px-1.5 py-0.5 rounded-md border border-border">
                             {incident.targetName}
                           </span>
                           <span>
@@ -96,7 +96,7 @@ export default async function IncidentsPage() {
         )}
 
         <section>
-          <h2 className="text-[11px] font-medium uppercase tracking-widest text-text-muted mb-3">
+          <h2 className="text-xs font-medium text-text-muted mb-3">
             Resolved
           </h2>
           {resolved.length === 0 ? (
@@ -104,11 +104,11 @@ export default async function IncidentsPage() {
               No recently resolved incidents.
             </p>
           ) : (
-            <div className="rounded border border-border bg-bg-card overflow-hidden divide-y divide-border/50">
+            <div className="card overflow-hidden divide-y divide-border/50">
               {resolved.map((incident) => (
                 <div
                   key={incident.id}
-                  className="flex items-start gap-3 px-4 py-3 hover:bg-bg-elevated transition-colors"
+                  className="flex items-start gap-3 px-4 py-3 hover:bg-white/[0.025] transition-colors"
                 >
                   <CheckCircle
                     className="w-4 h-4 mt-0.5 shrink-0 text-status-up"
@@ -128,7 +128,7 @@ export default async function IncidentsPage() {
                       {incident.description}
                     </p>
                     <div className="flex items-center gap-3 mt-1 text-[11px] font-mono text-text-muted">
-                      <span className="text-accent-cyan bg-accent-cyan/10 px-1.5 py-0.5 rounded border border-accent-cyan/30">
+                      <span className="text-text-secondary bg-white/[0.04] px-1.5 py-0.5 rounded-md border border-border">
                         {incident.targetName}
                       </span>
                       <span>{formatRelativeTime(incident.startedAt)}</span>

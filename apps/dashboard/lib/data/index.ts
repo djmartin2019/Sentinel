@@ -10,6 +10,7 @@ export {
 export { getTargetById, getRecentChecks } from "./health-checks/recent-for-target";
 export { getLatencyTimeSeries } from "./health-checks/latency-series";
 export { getLatencyRollupTimeSeries } from "./health-checks/latency-rollup-series";
+export { loadDailyUptimeByTarget } from "./health-checks/uptime-daily-by-target";
 export { getUptimeTimeSeries } from "./health-checks/uptime-daily-series";
 export {
   parseLatencyRange,

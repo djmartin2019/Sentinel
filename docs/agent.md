@@ -1,5 +1,7 @@
 # Agent app
 
+> **Status: dormant.** Telemetry is no longer on the roadmap and the dashboard does not surface it. This code is kept for reference only; Sentinel currently focuses on uptime and incidents.
+
 The **agent** is a host telemetry client. It collects metrics from the machine it runs on (CPU today), batches them, and sends them to the **collector** over gRPC. It does **not** write to Postgres directly.
 
 ## Role in the stack

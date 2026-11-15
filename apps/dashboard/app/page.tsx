@@ -1,5 +1,7 @@
 import Header from "@/components/layout/Header";
+import StatusBanner from "@/components/dashboard/StatusBanner";
 import SummaryCards from "@/components/dashboard/SummaryCards";
+import UptimeBars from "@/components/dashboard/UptimeBars";
 import ServicesTable from "@/components/dashboard/ServicesTable";
 import IncidentFeed from "@/components/incidents/IncidentFeed";
 import RecentActivity from "@/components/dashboard/RecentActivity";
@@ -24,6 +26,7 @@ export default async function DashboardPage({
     activeIncidents,
     resolvedIncidents,
     activityEvents,
+    dailyUptimeByTarget,
   } = await getOverviewPageData(rawTargetId, range);
 
   // Ignore invalid IDs, fall back to "all targets"
@@ -32,52 +35,39 @@ export default async function DashboardPage({
     : undefined;
 
   const incidents = [...activeIncidents, ...resolvedIncidents.slice(0, 5)];
+  const targetOptions = targets.map((t) => ({ id: t.id, name: t.name }));
 
   return (
     <>
-      <Header
-        title="Overview"
-        subtitle="Infrastructure health · live from database"
-      />
-      <div className="space-y-5 p-4 sm:p-5 max-w-[1600px]">
+      <Header title="Overview" subtitle="Uptime & incidents across all targets" />
+      <div className="mx-auto max-w-[1400px] space-y-4 p-4 sm:p-6">
+        <StatusBanner targets={targets} activeIncidents={activeIncidents.length} />
+
         <SummaryCards stats={stats} />
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <UptimeBars targets={targets} dailyUptimeByTarget={dailyUptimeByTarget} />
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <LatencyChart
             data={latencyData}
-            targets={targets.map((t) => ({ id: t.id, name: t.name }))}
+            targets={targetOptions}
             selectedTargetId={selectedTarget?.id}
             selectedRange={range}
           />
           <UptimeChart
             data={uptimeData}
-            targets={targets.map((t) => ({ id: t.id, name: t.name }))}
+            targets={targetOptions}
             selectedTargetId={selectedTarget?.id}
           />
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
           <div className="xl:col-span-2">
             <ServicesTable targets={targets} />
           </div>
           <div className="space-y-4">
             <IncidentFeed incidents={incidents} />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div className="xl:col-span-1">
             <RecentActivity events={activityEvents} />
-          </div>
-          <div className="xl:col-span-2 rounded border border-border bg-bg-card p-4 flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-xs font-mono text-text-muted">
-                Telemetry heatmap — coming soon
-              </p>
-              <p className="text-[11px] text-text-dim mt-1">
-                Connect telemetry-collector to enable
-              </p>
-            </div>
           </div>
         </div>
       </div>

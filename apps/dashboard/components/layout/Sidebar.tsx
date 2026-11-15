@@ -2,14 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   LayoutDashboard,
   Radio,
   AlertTriangle,
-  Activity,
-  Server,
-  Settings,
   ChevronLeft,
   Zap,
   X,
@@ -21,12 +18,9 @@ const navItems = [
   { label: 'Overview', href: '/', icon: LayoutDashboard },
   { label: 'Targets', href: '/targets', icon: Radio },
   { label: 'Incidents', href: '/incidents', icon: AlertTriangle },
-  { label: 'Telemetry', href: '/telemetry', icon: Activity },
-  { label: 'Services', href: '/services', icon: Server },
-  { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ systemStatus }: { systemStatus?: ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const { mobileOpen, closeMobile } = useNavigation();
@@ -35,7 +29,7 @@ export default function Sidebar() {
     <>
       <div
         className={cn(
-          'fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] transition-opacity duration-300 md:hidden',
+          'fixed inset-0 z-40 bg-black/70 backdrop-blur-[2px] transition-opacity duration-300 md:hidden',
           mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
         )}
         onClick={closeMobile}
@@ -57,12 +51,12 @@ export default function Sidebar() {
             collapsed && 'md:justify-center md:px-0'
           )}
         >
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-accent-cyan/30 bg-accent-cyan/10">
+          <div className="glow-cyan-sm flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-accent-cyan/40 bg-gradient-to-b from-accent-cyan/25 to-accent-cyan/5">
             <Zap className="h-3.5 w-3.5 text-accent-cyan" strokeWidth={2.5} />
           </div>
           <span
             className={cn(
-              'text-sm font-semibold uppercase tracking-wider text-text-primary',
+              'text-sm font-semibold tracking-tight text-text-primary',
               collapsed && 'md:hidden'
             )}
           >
@@ -71,7 +65,7 @@ export default function Sidebar() {
           <button
             type="button"
             onClick={closeMobile}
-            className="ml-auto flex h-8 w-8 items-center justify-center rounded border border-border text-text-muted hover:text-text-primary md:hidden"
+            className="ml-auto flex h-8 w-8 items-center justify-center rounded-md border border-border text-text-muted hover:text-text-primary md:hidden"
             aria-label="Close menu"
           >
             <X className="h-4 w-4" strokeWidth={2} />
@@ -88,14 +82,17 @@ export default function Sidebar() {
                 href={href}
                 onClick={closeMobile}
                 className={cn(
-                  'group flex items-center gap-3 rounded border px-2.5 py-2 text-sm transition-all duration-150',
+                  'group relative flex items-center gap-3 rounded-md px-2.5 py-2 text-sm transition-colors duration-150',
                   active
-                    ? 'border-accent-cyan/20 bg-accent-cyan/10 text-accent-cyan'
-                    : 'border-transparent text-text-secondary hover:bg-bg-elevated hover:text-text-primary',
+                    ? 'bg-bg-elevated text-text-primary'
+                    : 'text-text-secondary hover:bg-bg-elevated/60 hover:text-text-primary',
                   collapsed && 'md:justify-center md:px-0'
                 )}
                 title={collapsed ? label : undefined}
               >
+                {active && (
+                  <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-accent-cyan shadow-[0_0_8px_rgba(30,167,255,0.8)]" />
+                )}
                 <Icon
                   className={cn(
                     'h-4 w-4 shrink-0',
@@ -108,28 +105,12 @@ export default function Sidebar() {
                 <span className={cn('truncate', collapsed && 'md:hidden')}>
                   {label}
                 </span>
-                {!collapsed && active && (
-                  <span className="ml-auto h-1 w-1 rounded-full bg-accent-cyan" />
-                )}
               </Link>
             );
           })}
         </nav>
 
-        <div
-          className={cn(
-            'mx-2 mb-2 rounded border border-border bg-bg-card px-3 py-2.5',
-            collapsed && 'md:hidden'
-          )}
-        >
-          <div className="flex items-center gap-2 text-xs text-text-muted">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-up opacity-50" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-status-up" />
-            </span>
-            <span>All systems operational</span>
-          </div>
-        </div>
+        <div className={cn(collapsed && 'md:hidden')}>{systemStatus}</div>
 
         <button
           type="button"

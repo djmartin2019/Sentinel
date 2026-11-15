@@ -25,7 +25,7 @@ export default async function TargetsPage() {
         title="Targets"
         subtitle={`${targets.length} monitored endpoints`}
       />
-      <div className="p-5 max-w-[1600px] space-y-4">
+      <div className="mx-auto max-w-[1400px] p-4 sm:p-6 space-y-4">
         <div className="flex items-center gap-4 text-xs font-mono">
           <div className="flex items-center gap-1.5 text-status-up">
             <span className="w-2 h-2 rounded-full bg-status-up" />
@@ -50,9 +50,9 @@ export default async function TargetsPage() {
           </div>
         </div>
 
-        <div className="rounded border border-border bg-bg-card overflow-hidden">
+        <div className="card overflow-hidden">
           {targets.length === 0 ? (
-            <div className="px-4 py-8 text-center text-xs font-mono text-text-muted">
+            <div className="px-4 py-8 text-center text-xs text-text-muted">
               No targets in database
             </div>
           ) : (
@@ -72,7 +72,7 @@ export default async function TargetsPage() {
                     ].map((h) => (
                       <th
                         key={h}
-                        className="px-4 py-3 text-left text-[10px] font-medium uppercase tracking-widest text-text-muted whitespace-nowrap"
+                        className="px-4 py-3 text-left text-[11px] font-medium text-text-muted whitespace-nowrap"
                       >
                         {h}
                       </th>
@@ -84,7 +84,7 @@ export default async function TargetsPage() {
                     <tr
                       key={target.id}
                       className={cn(
-                        "group border-b border-border/50 hover:bg-bg-elevated transition-colors",
+                        "group border-b border-border/50 hover:bg-white/[0.025] transition-colors",
                         i === targets.length - 1 && "border-b-0",
                       )}
                     >

@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { axisTick, chartTheme } from "@/lib/chart-theme";
 import type { LatencyDataPoint, LatencyRange } from "@/lib/types";
 import {
   LATENCY_RANGE_LABELS,
@@ -27,7 +28,7 @@ interface LatencyChartProps {
 type TooltipPayload = { name: string; value: number; color: string };
 
 const SELECT_CLASS =
-  "mt-0.5 text-[11px] font-mono text-text-secondary bg-bg-elevated border border-border rounded px-2 py-0.5 focus:outline-none focus:border-accent-cyan/50";
+  "mt-0.5 text-[11px] font-mono text-text-secondary bg-bg-elevated border border-border rounded-md px-2 py-1 focus:outline-none focus:border-accent-cyan/50";
 
 function downsampleChartData(data: LatencyDataPoint[]): LatencyDataPoint[] {
   if (data.length <= 120) return data;
@@ -45,7 +46,7 @@ function CustomTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-bg-elevated border border-border rounded px-3 py-2 text-xs font-mono shadow-lg">
+    <div className="bg-bg-elevated/95 backdrop-blur border border-border-strong rounded-md px-3 py-2 text-xs font-mono shadow-lg">
       <p className="text-text-muted mb-1.5">{label}</p>
       {payload.map((p) => (
         <div key={p.name} className="flex items-center gap-2">
@@ -143,7 +144,7 @@ export default function LatencyChart({
 
   if (data.length === 0) {
     return (
-      <div className="rounded border border-border bg-bg-card p-4">
+      <div className="card p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-sm font-semibold text-text-primary">
@@ -152,7 +153,7 @@ export default function LatencyChart({
             {headerControls}
           </div>
         </div>
-        <div className="flex items-center justify-center h-[180px] text-xs font-mono text-text-muted">
+        <div className="flex items-center justify-center h-[180px] text-xs text-text-muted">
           No check data yet
         </div>
       </div>
@@ -160,7 +161,7 @@ export default function LatencyChart({
   }
 
   return (
-    <div className="rounded border border-border bg-bg-card p-4">
+    <div className="card p-4">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-semibold text-text-primary">
@@ -190,18 +191,18 @@ export default function LatencyChart({
         >
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="rgba(30,45,64,0.8)"
+            stroke={chartTheme.grid}
             vertical={false}
           />
           <XAxis
             dataKey="time"
-            tick={{ fill: "#475569", fontSize: 10, fontFamily: "monospace" }}
+            tick={axisTick}
             tickLine={false}
             axisLine={false}
             interval={Math.max(0, Math.floor(visibleData.length / 8) - 1)}
           />
           <YAxis
-            tick={{ fill: "#475569", fontSize: 10, fontFamily: "monospace" }}
+            tick={axisTick}
             tickLine={false}
             axisLine={false}
             tickFormatter={(v) => `${v}ms`}
@@ -211,30 +212,30 @@ export default function LatencyChart({
             type="monotone"
             dataKey="latencyMs"
             name="avg"
-            stroke="#22d3ee"
+            stroke={chartTheme.avg}
             strokeWidth={1.5}
             dot={false}
-            activeDot={{ r: 3, fill: "#22d3ee", strokeWidth: 0 }}
+            activeDot={{ r: 3, fill: chartTheme.avg, strokeWidth: 0 }}
           />
           <Line
             type="monotone"
             dataKey="p95Ms"
             name="p95"
-            stroke="#60a5fa"
+            stroke={chartTheme.p95}
             strokeWidth={1}
             strokeDasharray="4 2"
             dot={false}
-            activeDot={{ r: 3, fill: "#60a5fa", strokeWidth: 0 }}
+            activeDot={{ r: 3, fill: chartTheme.p95, strokeWidth: 0 }}
           />
           <Line
             type="monotone"
             dataKey="p99Ms"
             name="p99"
-            stroke="#a78bfa"
+            stroke={chartTheme.p99}
             strokeWidth={1}
             strokeDasharray="2 3"
             dot={false}
-            activeDot={{ r: 3, fill: "#a78bfa", strokeWidth: 0 }}
+            activeDot={{ r: 3, fill: chartTheme.p99, strokeWidth: 0 }}
           />
         </LineChart>
       </ResponsiveContainer>

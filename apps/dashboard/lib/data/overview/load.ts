@@ -11,12 +11,17 @@ import {
 } from "../health-checks/uptime-daily-series";
 import { getActiveIncidents, getRecentIncidents } from "../incidents/detect";
 import { getActivityFeed } from "../activity/recent";
+import {
+  emptyDailySeries,
+  loadDailyUptimeByTarget,
+} from "../health-checks/uptime-daily-by-target";
 
 import { buildTargetsWithStatus } from "../targets/list";
 import { deriveSummaryStats } from "../targets/list";
 
 import type {
   ActivityEvent,
+  DailyUptimeBucket,
   Incident,
   LatencyDataPoint,
   LatencyRange,
@@ -35,6 +40,7 @@ export interface OverviewPageData {
   activeIncidents: Incident[];
   resolvedIncidents: Incident[];
   activityEvents: ActivityEvent[];
+  dailyUptimeByTarget: Record<string, DailyUptimeBucket[]>;
 }
 
 export async function getOverviewPageData(
@@ -52,6 +58,7 @@ export async function getOverviewPageData(
     activeIncidents,
     resolvedIncidents,
     activityEvents,
+    dailyUptime,
   ] = await Promise.all([
     prisma.monitoredTarget.findMany({ orderBy: { name: "asc" } }),
     loadLatestChecksByTarget(),
@@ -61,6 +68,7 @@ export async function getOverviewPageData(
     getActiveIncidents(),
     getRecentIncidents(),
     getActivityFeed(),
+    loadDailyUptimeByTarget(90),
   ]);
 
   const uptimeData = buildUptimeSeries(uptimeRows);
@@ -73,6 +81,11 @@ export async function getOverviewPageData(
 
   const stats = deriveSummaryStats(targets, activeIncidents.length);
 
+  const dailyUptimeByTarget: Record<string, DailyUptimeBucket[]> = {};
+  for (const t of targets) {
+    dailyUptimeByTarget[t.id] = dailyUptime.get(t.id) ?? emptyDailySeries(90);
+  }
+
   return {
     targets,
     stats,
@@ -81,5 +94,6 @@ export async function getOverviewPageData(
     activeIncidents,
     resolvedIncidents,
     activityEvents,
+    dailyUptimeByTarget,
   };
 }

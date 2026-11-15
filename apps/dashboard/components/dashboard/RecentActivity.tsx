@@ -1,18 +1,12 @@
-import { CheckCircle, AlertTriangle, ArrowUpCircle, Bell } from 'lucide-react';
+import { AlertTriangle, ArrowUpCircle, XCircle, CheckCircle } from 'lucide-react';
 import { formatRelativeTime, cn } from '@/lib/utils';
 import type { ActivityEvent } from '@/lib/types';
 
 const typeConfig: Record<ActivityEvent['type'], { icon: React.ElementType; color: string }> = {
   check: { icon: CheckCircle, color: 'text-status-up' },
-  incident: { icon: AlertTriangle, color: 'text-status-down' },
+  incident: { icon: XCircle, color: 'text-status-down' },
   recovery: { icon: ArrowUpCircle, color: 'text-status-up' },
-  alert: { icon: Bell, color: 'text-status-degraded' },
-};
-
-const statusDot: Record<string, string> = {
-  UP: 'bg-status-up',
-  DOWN: 'bg-status-down',
-  DEGRADED: 'bg-status-degraded',
+  alert: { icon: AlertTriangle, color: 'text-status-degraded' },
 };
 
 interface RecentActivityProps {
@@ -21,40 +15,46 @@ interface RecentActivityProps {
 
 export default function RecentActivity({ events }: RecentActivityProps) {
   return (
-    <div className="rounded border border-border bg-bg-card overflow-hidden">
-      <div className="px-4 py-3 border-b border-border">
-        <h2 className="text-sm font-semibold text-text-primary">Activity</h2>
-        <p className="text-[11px] text-text-muted mt-0.5">Last 24 hours</p>
+    <div className="card overflow-hidden">
+      <div className="border-b border-border px-4 py-3">
+        <h2 className="text-sm font-semibold text-text-primary">Status changes</h2>
+        <p className="mt-0.5 text-xs text-text-muted">Up / slow / down transitions · last 7 days</p>
       </div>
 
       {events.length === 0 ? (
-        <div className="px-4 py-8 text-center text-xs font-mono text-text-muted">
-          No recent activity
+        <div className="px-4 py-8 text-center text-xs text-text-muted">
+          No status changes in the last 7 days
         </div>
       ) : (
-        <div className="relative">
-          <div className="absolute left-[27px] top-0 bottom-0 w-px bg-border/60" />
-          <div className="divide-y divide-border/30">
-            {events.map((event) => {
-              const { icon: Icon, color } = typeConfig[event.type];
-              return (
-                <div key={event.id} className="flex items-start gap-3 px-4 py-2.5 hover:bg-bg-elevated transition-colors">
-                  <div className={cn('relative z-10 flex items-center justify-center w-5 h-5 rounded-full bg-bg-card border border-border shrink-0 mt-0.5', color)}>
-                    <Icon className="w-2.5 h-2.5" strokeWidth={2} />
+        <ol className="relative max-h-[360px] overflow-y-auto py-1">
+          <div aria-hidden className="absolute bottom-0 left-[25px] top-0 w-px bg-border" />
+          {events.map((event) => {
+            const { icon: Icon, color } = typeConfig[event.type];
+            return (
+              <li key={event.id} className="relative flex items-start gap-3 px-4 py-2">
+                <span
+                  className={cn(
+                    'relative z-10 mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-bg-base',
+                    color,
+                  )}
+                >
+                  <Icon className="h-3 w-3" strokeWidth={2} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="truncate text-xs font-medium text-text-primary">
+                      {event.targetName}
+                    </span>
+                    <span className="shrink-0 font-mono text-[11px] text-text-muted">
+                      {formatRelativeTime(event.timestamp)}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', statusDot[event.status])} />
-                      <span className="font-mono text-[11px] font-medium text-text-secondary">{event.targetName}</span>
-                    </div>
-                    <p className="text-[11px] text-text-muted leading-snug">{event.message}</p>
-                    <p className="text-[10px] font-mono text-text-dim mt-0.5">{formatRelativeTime(event.timestamp)}</p>
-                  </div>
+                  <p className="truncate text-xs text-text-muted">{event.message}</p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </li>
+            );
+          })}
+        </ol>
       )}
     </div>
   );

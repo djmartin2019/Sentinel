@@ -27,7 +27,7 @@ export default function IncidentFeed({ incidents }: IncidentFeedProps) {
   const all = [...active, ...resolved];
 
   return (
-    <div className="rounded border border-border bg-bg-card overflow-hidden">
+    <div className="card overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-text-primary">Incidents</h2>
@@ -39,15 +39,16 @@ export default function IncidentFeed({ incidents }: IncidentFeedProps) {
         </div>
         <Link
           href="/incidents"
-          className="flex items-center gap-1 text-xs text-accent-cyan hover:text-accent-cyan/80 transition-colors"
+          className="flex items-center gap-1 text-xs text-text-secondary hover:text-accent-cyan transition-colors"
         >
           View all <ArrowUpRight className="w-3 h-3" />
         </Link>
       </div>
 
       {all.length === 0 ? (
-        <div className="px-4 py-8 text-center text-xs font-mono text-text-muted">
-          No active incidents
+        <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
+          <CheckCircle className="w-5 h-5 text-status-up" strokeWidth={1.75} />
+          <p className="text-xs text-text-secondary">No incidents in the last 30 days</p>
         </div>
       ) : (
         <div className="divide-y divide-border/50">
@@ -57,7 +58,7 @@ export default function IncidentFeed({ incidents }: IncidentFeedProps) {
               <div
                 key={incident.id}
                 className={cn(
-                  'px-4 py-3 transition-colors hover:bg-bg-elevated',
+                  'px-4 py-3 transition-colors hover:bg-white/[0.025]',
                   !incident.resolved && incident.severity === 'critical' && 'border-l-2 border-l-severity-critical'
                 )}
               >
@@ -74,7 +75,7 @@ export default function IncidentFeed({ incidents }: IncidentFeedProps) {
                       <p className="text-xs font-medium text-text-primary truncate">{incident.title}</p>
                       <SeverityBadge severity={incident.severity} />
                       {incident.resolved && (
-                        <span className="text-[10px] font-mono text-status-up border border-status-up/25 bg-status-up/8 px-1.5 py-0.5 rounded-sm">
+                        <span className="text-[10px] font-mono text-status-up border border-status-up/25 bg-status-up/10 px-1.5 py-0.5 rounded-md">
                           RESOLVED
                         </span>
                       )}
@@ -83,7 +84,7 @@ export default function IncidentFeed({ incidents }: IncidentFeedProps) {
                       {incident.description}
                     </p>
                     <div className="flex items-center gap-3 text-[11px] font-mono text-text-muted">
-                      <span className="text-accent-cyan bg-accent-cyan/10 px-1.5 py-0.5 rounded border border-accent-cyan/30">
+                      <span className="text-text-secondary bg-white/[0.04] px-1.5 py-0.5 rounded-md border border-border">
                         {incident.targetName}
                       </span>
                       <span>{formatRelativeTime(incident.startedAt)}</span>

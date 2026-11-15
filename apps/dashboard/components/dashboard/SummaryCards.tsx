@@ -1,170 +1,95 @@
-import {
-  Radio,
-  CheckCircle,
-  AlertTriangle,
-  Timer,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { SummaryStats } from "@/lib/types";
+import { Radio, AlertTriangle, Timer, ShieldCheck } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { SummaryStats } from '@/lib/types';
+
+type Tone = 'accent' | 'ok' | 'warn' | 'down';
+
+const toneText: Record<Tone, string> = {
+  accent: 'text-text-primary',
+  ok: 'text-text-primary',
+  warn: 'text-status-degraded',
+  down: 'text-status-down',
+};
+
+const toneIcon: Record<Tone, string> = {
+  accent: 'text-accent-cyan',
+  ok: 'text-status-up',
+  warn: 'text-status-degraded',
+  down: 'text-status-down',
+};
 
 interface CardProps {
   title: string;
-  value: string | number;
+  value: React.ReactNode;
   icon: React.ElementType;
-  trend?: {
-    value: string;
-    direction: "up" | "down" | "neutral";
-    positive?: boolean;
-  };
-  accent?: "cyan" | "green" | "red" | "amber";
-  description?: string;
+  tone?: Tone;
+  footnote: string;
 }
 
-const accentMap = {
-  cyan: {
-    icon: "text-accent-cyan",
-    iconBg: "bg-accent-cyan/8 border-accent-cyan/20",
-    value: "text-accent-cyan",
-    glow: "hover:shadow-[0_0_20px_rgba(34,211,238,0.07)]",
-  },
-  green: {
-    icon: "text-status-up",
-    iconBg: "bg-status-up/8 border-status-up/20",
-    value: "text-status-up",
-    glow: "hover:shadow-[0_0_20px_rgba(16,185,129,0.07)]",
-  },
-  red: {
-    icon: "text-status-down",
-    iconBg: "bg-status-down/8 border-status-down/20",
-    value: "text-status-down",
-    glow: "hover:shadow-[0_0_20px_rgba(239,68,68,0.07)]",
-  },
-  amber: {
-    icon: "text-status-degraded",
-    iconBg: "bg-status-degraded/8 border-status-degraded/20",
-    value: "text-status-degraded",
-    glow: "hover:shadow-[0_0_20px_rgba(245,158,11,0.07)]",
-  },
-};
-
-function Card({
-  title,
-  value,
-  icon: Icon,
-  trend,
-  accent = "cyan",
-  description,
-}: CardProps) {
-  const a = accentMap[accent];
-  const TrendIcon =
-    trend?.direction === "up"
-      ? TrendingUp
-      : trend?.direction === "down"
-        ? TrendingDown
-        : Minus;
-
+function Card({ title, value, icon: Icon, tone = 'accent', footnote }: CardProps) {
   return (
-    <div
-      className={cn(
-        "relative p-4 rounded border border-border bg-bg-card transition-all duration-200",
-        a.glow,
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-medium uppercase tracking-widest text-text-muted mb-2">
-            {title}
-          </p>
-          <p
-            className={cn(
-              "text-2xl font-bold font-mono tabular-nums tracking-tight",
-              a.value,
-            )}
-          >
-            {value}
-          </p>
-          {description && (
-            <p className="text-[11px] text-text-muted mt-1.5 truncate">
-              {description}
-            </p>
-          )}
-          {trend && (
-            <div
-              className={cn(
-                "flex items-center gap-1 mt-2 text-[11px] font-medium",
-                trend.positive
-                  ? "text-status-up"
-                  : trend.direction === "neutral"
-                    ? "text-text-muted"
-                    : "text-status-down",
-              )}
-            >
-              <TrendIcon className="w-3 h-3" strokeWidth={2.5} />
-              <span>{trend.value}</span>
-            </div>
-          )}
-        </div>
-        <div
-          className={cn(
-            "flex items-center justify-center w-9 h-9 rounded border shrink-0",
-            a.iconBg,
-          )}
-        >
-          <Icon className={cn("w-4 h-4", a.icon)} strokeWidth={1.75} />
-        </div>
+    <div className="card card-hover p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-text-muted">{title}</p>
+        <Icon className={cn('h-4 w-4', toneIcon[tone])} strokeWidth={1.75} />
       </div>
+      <p
+        className={cn(
+          'mt-3 font-mono text-[28px] font-semibold leading-none tracking-tight tabular-nums',
+          toneText[tone],
+        )}
+      >
+        {value}
+      </p>
+      <p className="mt-2 text-xs text-text-muted">{footnote}</p>
     </div>
   );
 }
 
-interface SummaryCardsProps {
-  stats: SummaryStats;
-}
-
-export default function SummaryCards({ stats }: SummaryCardsProps) {
-  const s = stats;
-  const healthPct =
-    s.totalTargets > 0
-      ? Math.round((s.healthyTargets / s.totalTargets) * 100)
-      : 0;
+export default function SummaryCards({ stats: s }: { stats: SummaryStats }) {
   const unhealthy = s.totalTargets - s.healthyTargets;
+  const uptimeTone: Tone =
+    s.avgUptimePercent >= 99.9 ? 'ok' : s.avgUptimePercent >= 99 ? 'warn' : 'down';
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <Card
-        title="Total Targets"
-        value={s.totalTargets}
+        title="Targets up"
         icon={Radio}
-        accent="cyan"
-        description={`${s.totalTargets} monitored endpoints`}
+        tone={unhealthy > 0 ? 'warn' : 'accent'}
+        value={
+          <>
+            {s.healthyTargets}
+            <span className="text-text-dim">/{s.totalTargets}</span>
+          </>
+        }
+        footnote={unhealthy > 0 ? `${unhealthy} degraded or down` : 'All passing'}
       />
       <Card
-        title="Healthy"
-        value={s.healthyTargets}
-        icon={CheckCircle}
-        accent="green"
-        description={`${healthPct}% passing checks`}
-        trend={{
-          value: `${unhealthy} degraded or down`,
-          direction: "neutral",
-        }}
-      />
-      <Card
-        title="Active Incidents"
-        value={s.activeIncidents}
+        title="Active incidents"
         icon={AlertTriangle}
-        accent={s.activeIncidents > 0 ? "red" : "green"}
-        description="Requires attention"
+        tone={s.activeIncidents > 0 ? 'down' : 'ok'}
+        value={s.activeIncidents}
+        footnote={s.activeIncidents > 0 ? 'Needs attention' : 'Nothing open'}
       />
       <Card
-        title="Avg Latency"
-        value={`${s.avgLatencyMs}ms`}
+        title="Uptime · 30d"
+        icon={ShieldCheck}
+        tone={uptimeTone}
+        value={`${s.avgUptimePercent.toFixed(2)}%`}
+        footnote="Average across targets"
+      />
+      <Card
+        title="Avg latency"
         icon={Timer}
-        accent="cyan"
-        description={`${s.avgUptimePercent}% avg uptime`}
+        tone={s.avgLatencyMs >= 800 ? 'warn' : 'accent'}
+        value={
+          <>
+            {s.avgLatencyMs}
+            <span className="ml-0.5 text-base text-text-muted">ms</span>
+          </>
+        }
+        footnote="Latest check, reachable targets"
       />
     </div>
   );
